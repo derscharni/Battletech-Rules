@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>LoS Trainer — BattleTech</title>
 <style>
   :root{
@@ -19,13 +19,15 @@
     background:var(--bg); color:var(--txt);
     font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
     overflow:hidden; -webkit-font-smoothing:antialiased;
+    height:100vh; height:100dvh;
+    display:flex; flex-direction:column;
   }
   button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
   select{font-family:inherit;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;outline:none}
 
   /* ---------- Header ---------- */
   header{
-    height:58px; display:flex; align-items:center; gap:18px; padding:0 18px;
+    min-height:58px; flex:none; display:flex; align-items:center; gap:18px; padding:0 18px;
     background:linear-gradient(180deg,#151a22,#10141b); border-bottom:1px solid var(--line);
   }
   .logo{display:flex;align-items:center;gap:11px}
@@ -46,7 +48,8 @@
   .seg label{align-self:center;font-size:11px;color:var(--mut);padding:0 4px 0 8px;letter-spacing:.6px;text-transform:uppercase}
 
   /* ---------- Layout ---------- */
-  main{display:grid;grid-template-columns:60px 1fr 372px;height:calc(100% - 58px)}
+  main{display:grid;grid-template-columns:60px 1fr 372px;flex:1;min-height:0}
+  #sidehandle{display:none}
 
   /* Tool-Leiste */
   .rail{
@@ -72,8 +75,13 @@
 
   /* Karte */
   .stage{position:relative;overflow:hidden;background:#0a0d12}
-  canvas#map{display:block;width:100%;height:100%;cursor:grab}
+  canvas#map{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
   canvas#map.paint{cursor:crosshair}
+  canvas#gl3d{touch-action:none}
+  #glvig{
+    position:absolute;inset:0;pointer-events:none;display:none;
+    background:radial-gradient(ellipse 75% 65% at 50% 42%,transparent 55%,rgba(3,6,12,0.55) 100%);
+  }
   .hud{position:absolute;pointer-events:none}
   .hud.tl{top:14px;left:16px;display:flex;gap:8px}
   .chip{
@@ -180,7 +188,70 @@
   }
   .lnav button:hover{color:var(--txt);border-color:var(--line2)}
   .lnav button.primary{background:var(--amber);color:#1d1608;border:none;font-weight:600}
+  /* Ausrichtung */
+  .facerow{display:flex;align-items:center;gap:6px;margin-top:8px}
+  .facerow button{
+    width:28px;height:26px;border:1px solid var(--line);border-radius:8px;
+    color:var(--sub);font-size:13px;line-height:1;transition:.15s;flex:none;
+  }
+  .facerow button:hover{color:var(--amber2);border-color:var(--amber)}
+  .facerow .fdir{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+    font-size:11.5px;font-weight:600;color:var(--txt);
+  }
+  .facerow .fdir svg{width:13px;height:13px;color:var(--amber2)}
+  .arcbadge{display:inline-block;font-weight:700;font-size:12px;padding:2.5px 10px;border-radius:8px;letter-spacing:.2px}
+  .arc-front{background:#5cb37122;color:#8fd6a0}
+  .arc-side{background:#e8a33d22;color:var(--amber2)}
+  .arc-rear{background:#d6533a26;color:#ef8570}
+
   .hidden{display:none!important}
+
+  /* ---------- Mobile ---------- */
+  @media (max-width:920px){
+    :root{font-size:14px}
+    header{
+      min-height:0;flex-wrap:wrap;gap:8px;row-gap:7px;padding:8px 10px;
+    }
+    .logo{gap:8px}
+    .logo .mark{width:28px;height:28px;border-radius:8px}
+    .logo h1{font-size:14px}
+    .logo small{display:none}
+    .tabs button{padding:6px 12px;font-size:12.5px}
+    .seg{padding:3px}
+    .seg label{display:none}
+    .seg button{padding:5px 9px;font-size:11.5px}
+    main{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto auto}
+    .rail{
+      flex-direction:row;height:52px;width:100%;padding:0 8px;gap:4px;
+      border-right:none;border-bottom:1px solid var(--line);
+      overflow-x:auto;overflow-y:hidden;
+    }
+    .rail button{width:40px;height:40px;flex:none;align-self:center}
+    .rail .div{width:1px;height:24px;margin:0 4px;align-self:center}
+    .rail button .tip{display:none}
+    #sidehandle{
+      display:flex;align-items:center;justify-content:center;gap:8px;
+      height:36px;background:var(--panel);border-top:1px solid var(--line);
+      font-size:12px;font-weight:600;color:var(--sub);width:100%;
+    }
+    #sidehandle .grip{width:34px;height:4px;border-radius:2px;background:var(--line2)}
+    #sidehandle .chev{transition:.25s;font-size:10px;color:var(--mut)}
+    body.sidedown #sidehandle .chev{transform:rotate(180deg)}
+    aside{height:44dvh;transition:height .25s ease;padding:12px}
+    body.sidedown aside{height:0;padding:0 12px;overflow:hidden;border:none}
+    .units{grid-template-columns:1fr 1fr}
+    .hud.tl{top:8px;left:8px;right:8px;flex-wrap:wrap}
+    .chip{font-size:11px;padding:4px 9px}
+    .profcard{left:8px;bottom:8px;max-width:48%;border-radius:12px}
+    .profcard header2{padding:7px 10px;font-size:11px}
+    .firebox{right:8px;bottom:8px;padding:7px 8px;gap:6px;border-radius:12px}
+    .firebox .tag{display:none}
+    .firebox select{max-width:118px;font-size:12px;padding:5px 6px}
+    .firebox button.fire{padding:7px 12px;font-size:12.5px}
+    .firebox button.auto{padding:6px 9px;font-size:11.5px}
+    #photopanel{width:170px;font-size:11px}
+  }
 </style>
 </head>
 <body>
@@ -213,6 +284,7 @@
   <section class="stage" id="stage">
     <canvas id="map"></canvas>
     <canvas id="gl3d" style="position:absolute;inset:0;display:none"></canvas>
+    <div id="glvig"></div>
     <input type="file" id="photofile" accept="image/*" style="display:none">
     <div class="hud tl">
       <span class="chip" id="hoverchip">—</span>
@@ -242,6 +314,7 @@
       <button class="auto" id="autobtn">Auto</button>
     </div>
   </section>
+  <button id="sidehandle"><span class="grip"></span><span class="chev">▼</span></button>
   <aside id="side"></aside>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -455,11 +528,49 @@ function finishAnalysis(o,rb,map,tgt){
   o.totalMod=mods.reduce((s,m)=>s+m.value,0);
   return o;
 }
+/* ---------- Ausrichtung & Angriffsrichtung ----------
+   Bögen wie MegaMek Compute.targetSideTable: Front 270°–90° (drei vordere
+   Hexseiten), rechte Seite (90°,150°], Heck (150°,210°), linke Seite [210°,270°).
+   Facing 0–5 = Hexseite, gegen den Uhrzeigersinn ab »Norden« der Karte. */
+const FACING_DIRS=[[0,-1],[1,-1],[1,0],[0,1],[-1,1],[-1,0]];
+const FACING_NAMES=['N','NO','SO','S','SW','NW'];
+const FACING_ANG=[-90,-30,30,90,150,210];
+function hexAngle(a,b){
+  const ax=a.q*1.5, ay=(a.r+a.q/2)*Math.sqrt(3);
+  const bx=b.q*1.5, by=(b.r+b.q/2)*Math.sqrt(3);
+  return Math.atan2(by-ay,bx-ax)*180/Math.PI;
+}
+function attackDirection(atk,tgt){
+  if(HexGeo.equals(atk.hex,tgt.hex)) return null;
+  const deg=hexAngle(tgt.hex,atk.hex);
+  let fa=(deg-FACING_ANG[tgt.facing||0])%360; if(fa<0)fa+=360;
+  fa=Math.round(fa*1000)/1000;
+  let side='front';
+  if(fa>90&&fa<=150) side='right';
+  else if(fa>150&&fa<210) side='rear';
+  else if(fa>=210&&fa<270) side='left';
+  const boundary=fa===90||fa===150||fa===210||fa===270;
+  return {fa,side,boundary};
+}
+/* Trefferzonentabelle (2W6). Front und Heck nutzen dieselbe Spalte —
+   Torsotreffer von hinten gehen aber auf die Heckpanzerung. */
+const HIT_LOCATIONS={CT:'Zentraltorso',LT:'Linker Torso',RT:'Rechter Torso',LA:'Linker Arm',RA:'Rechter Arm',LL:'Linkes Bein',RL:'Rechtes Bein',HD:'Kopf'};
+const HIT_TABLE={
+  front:['CT','RA','RA','RL','RT','CT','LT','LL','LA','LA','HD'],
+  rear: ['CT','RA','RA','RL','RT','CT','LT','LL','LA','LA','HD'],
+  left: ['LT','LL','LA','LA','LL','LT','CT','RT','RA','RL','HD'],
+  right:['RT','RL','RA','RA','RL','RT','CT','LT','LA','LL','HD']
+};
+function hitLocation(side,roll){
+  const code=HIT_TABLE[side||'front'][roll-2];
+  return {code,name:HIT_LOCATIONS[code],crit:roll===2,
+    rearArmor:side==='rear'&&(code==='CT'||code==='LT'||code==='RT')};
+}
 function defenderScore(a){ return (a.blocked?1000:0)+a.totalMod; }
 function computeLoS(map,atk,tgt,rulebookId){
   const rb=RULEBOOKS[rulebookId]||RULEBOOKS.bmm;
   if(HexGeo.equals(atk.hex,tgt.hex)){
-    return {sameHex:true,blocked:false,rows:[],mods:[],totalMod:0,rb};
+    return {sameHex:true,blocked:false,rows:[],mods:[],totalMod:0,rb,dir:null,atkArc:null};
   }
   const p1=HexGeo.line(atk.hex,tgt.hex,+1);
   const p2=HexGeo.line(atk.hex,tgt.hex,-1);
@@ -473,7 +584,8 @@ function computeLoS(map,atk,tgt,rulebookId){
     if(defenderScore(a2)>defenderScore(a1)){ result=a2; altResult=a1; }
     else{ result=a1; altResult=a2; }
   }
-  return Object.assign({sameHex:false,divided,altResult,rb,distance:HexGeo.distance(atk.hex,tgt.hex)},result);
+  return Object.assign({sameHex:false,divided,altResult,rb,distance:HexGeo.distance(atk.hex,tgt.hex),
+    dir:attackDirection(atk,tgt),atkArc:attackDirection(tgt,atk)},result);
 }
 </script>
 <script>
@@ -482,7 +594,7 @@ function computeLoS(map,atk,tgt,rulebookId){
    ============================================================ */
 const COLS=15, ROWS=10;
 const state={
-  map:new Map(), atk:{hex:{q:0,r:2},prone:false}, tgt:{hex:{q:8,r:2},prone:false},
+  map:new Map(), atk:{hex:{q:0,r:2},prone:false,facing:2}, tgt:{hex:{q:8,r:2},prone:false,facing:5},
   rulebook:'bmm', style:'clean', tool:'pan', mode:'sandbox',
   zoom:1, panX:0, panY:0, hover:null, result:null,
   shots:[], particles:[], floaters:[], autoFire:false,
@@ -537,6 +649,18 @@ function gatorCalc(res){
   const P={2:100,3:97.2,4:91.7,5:83.3,6:72.2,7:58.3,8:41.7,9:27.8,10:16.7,11:8.3,12:2.8};
   const prob=tn<=2?100:(tn>12?0:P[tn]);
   return {g:g.gunnery,A,T,tNotes,O,R,minMod,tn,prob,rBracket,wpn,d,heat:g.heat,terrain:res.totalMod};
+}
+function d6(){ return 1+Math.floor(Math.random()*6); }
+function rotateUnit(u,d){ u.facing=(((u.facing||0)+d)%6+6)%6; recompute(); }
+function faceToward(u,other){
+  // Nächstliegende Hexseite in Richtung des Gegenübers
+  const deg=hexAngle(u.hex,other.hex);
+  let best=0,bd=1e9;
+  FACING_ANG.forEach((a,i)=>{
+    const d=Math.abs((((deg-a)%360)+540)%360-180);
+    if(d<bd){bd=d;best=i;}
+  });
+  u.facing=best;
 }
 function hx(q,r){ return state.map.get(q+','+r); }
 function setHex(q,r,v){ state.map.set(q+','+r,Object.assign({level:0,terrain:'clear'},v)); state.terrainRev++; }
@@ -613,8 +737,9 @@ function centerMap(){
   const w=cv.width/devicePixelRatio, h=cv.height/devicePixelRatio;
   const c1=baseCenter(0,0), c2=baseCenter(COLS-1,ROWS-1);
   const mw=(c2.x-c1.x), mh=(c2.y-c1.y);
-  state.zoom=Math.min((w-140)/(mw+2*S),(h-160)/(mh+2*S));
-  state.zoom=Math.max(0.5,Math.min(1.6,state.zoom));
+  const padX=w<640?30:140, padY=h<640?90:160;
+  state.zoom=Math.min((w-padX)/(mw+2*S),(h-padY)/(mh+2*S));
+  state.zoom=Math.max(0.3,Math.min(1.6,state.zoom));
   state.panX=(w-mw*state.zoom)/2;
   state.panY=(h-mh*state.zoom)/2+10;
 }
@@ -890,6 +1015,23 @@ function drawUnit(u,color,tag){
   ctx.fillStyle='rgba(0,0,0,0.38)'; ctx.fill();
   ctx.beginPath(); ctx.ellipse(p.x,p.y+1*z,13*sc,5*sc,0,0,7);
   ctx.fillStyle=color+'33'; ctx.strokeStyle=color; ctx.lineWidth=1.6*z; ctx.fill(); ctx.stroke();
+  // Ausrichtungsring: Front grün (270°–90°), Seiten bernstein, Heck rot — plus Richtungspfeil
+  const fbase=FACING_ANG[u.facing||0]*Math.PI/180, RAD=Math.PI/180;
+  const ringR=18*sc;
+  const zones=[[-88,88,'rgba(92,179,113,0.8)'],[92,148,'rgba(232,163,61,0.85)'],[152,208,'rgba(214,83,58,0.9)'],[212,268,'rgba(232,163,61,0.85)']];
+  for(const [a1,a2,zc] of zones){
+    ctx.beginPath();
+    ctx.ellipse(p.x,p.y+1*z,ringR,ringR*SQ,0,fbase+a1*RAD,fbase+a2*RAD);
+    ctx.strokeStyle=zc; ctx.lineWidth=2*z; ctx.stroke();
+  }
+  const chR=ringR*1.3, chx=p.x+Math.cos(fbase)*chR, chy=p.y+1*z+Math.sin(fbase)*chR*SQ;
+  ctx.beginPath();
+  ctx.moveTo(chx+Math.cos(fbase)*5.5*sc, chy+Math.sin(fbase)*5.5*sc*SQ);
+  ctx.lineTo(chx+Math.cos(fbase+2.4)*4.6*sc, chy+Math.sin(fbase+2.4)*4.6*sc*SQ);
+  ctx.lineTo(chx+Math.cos(fbase-2.4)*4.6*sc, chy+Math.sin(fbase-2.4)*4.6*sc*SQ);
+  ctx.closePath();
+  ctx.fillStyle=shade(color,1.25); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=0.8*z; ctx.stroke();
   const bh=u.prone?10*sc:26*sc;
   if(u.prone){
     ctx.fillStyle=shade(color,0.9);
@@ -1009,6 +1151,22 @@ function drawLosLine(){
 /* ============================================================
    Gefechtssimulation
    ============================================================ */
+function resolveShot(res){
+  // Echter 2W6-To-Hit-Wurf; bei Treffer folgt der Trefferzonen-Wurf
+  // auf der Spalte, die sich aus der Angriffsrichtung ergibt
+  const gc=gatorCalc(res);
+  if(!gc) return {label:'Keine LoS',col:'#ef8570'};
+  if(gc.out) return {label:'Außer Reichweite!',col:'#ef8570'};
+  const roll=d6()+d6();
+  if(roll<gc.tn) return {label:`${roll} vs. TN ${gc.tn} — daneben`,col:'#aab3bd'};
+  const side=res.dir?res.dir.side:'front';
+  const loc=hitLocation(side,d6()+d6());
+  let txt=`${roll} vs. TN ${gc.tn} — ${loc.name}`;
+  if(loc.rearArmor) txt+=' (Heckpanzerung!)';
+  else if(loc.crit) txt+=' — Crit-Chance!';
+  else if(loc.code==='HD') txt+=' — autsch!';
+  return {label:txt,col:loc.rearArmor||loc.code==='HD'?'#f5c069':'#8fd6a0'};
+}
 function fire(){
   const res=state.result;
   if(!res||res.sameHex) return;
@@ -1033,11 +1191,8 @@ function fire(){
     missiles:wpn==='lrm'?[...Array(6)].map((_,i)=>({d:i*90,off:(Math.random()-0.5)*26})):null});
   if(!hit) addFloater(end.x,end.y-24,'Blockiert!','#ef7862');
   else{
-    const gc=gatorCalc(res);
-    let label=res.totalMod>0?`Treffer möglich · +${res.totalMod}`:'Freie Schussbahn';
-    if(gc&&!gc.out) label=`TN ${gc.tn} · ${gc.prob.toFixed(0)} %`;
-    else if(gc&&gc.out) label='Außer Reichweite!';
-    addFloater(end.x,end.y-34,label,res.totalMod>0?'#f5c069':'#8fd6a0');
+    const rs=resolveShot(res);
+    addFloater(end.x,end.y-34,rs.label,rs.col);
   }
 }
 function addFloater(x,y,txt,col){ state.floaters.push({x,y,txt,col,t:0}); }
@@ -1239,7 +1394,7 @@ function buildRail(){
     if(t.id===state.tool) b.classList.add('on');
     b.onclick=()=>{
       if(t.id==='dice'){ if(state.mode==='lessons'){lockedHint();return;} randomMap(); ensureUnitsValid(); recompute(); return; }
-      if(t.id==='reset'){ if(state.mode==='lessons'){lockedHint();return;} defaultMap(); state.atk.hex={q:0,r:2}; state.tgt.hex={q:8,r:2}; recompute(); return; }
+      if(t.id==='reset'){ if(state.mode==='lessons'){lockedHint();return;} defaultMap(); state.atk.hex={q:0,r:2}; state.tgt.hex={q:8,r:2}; state.atk.facing=2; state.tgt.facing=5; recompute(); return; }
       if(t.id==='photo'&&!state.photo.img) document.getElementById('photofile').click();
       state.tool=t.id;
       document.querySelectorAll('.rail button').forEach(x=>x.classList.toggle('on',x.dataset.tool===t.id));
@@ -1347,6 +1502,7 @@ function renderSide(){
       ${unitCard(state.atk,'#d6533a','Angreifer','A')}
       ${unitCard(state.tgt,'#4f93d8','Ziel','B')}
     </div>
+    ${dirHtml(res)}
     <h3 class="sect">Sichtlinie, Hex für Hex</h3>
     <div class="rows">${rowsHtml}</div>
     ${modsHtml}
@@ -1357,6 +1513,9 @@ function renderSide(){
     <div class="foot">Regeln seitengenau geprüft am BattleMech Manual (2017, v1.1.1) und verifiziert gegen die MegaMek-Referenzimplementierung. Inoffizielles Fan-Lernwerkzeug — BattleTech © Catalyst Game Labs.</div>`;
   side.querySelectorAll('input[data-prone]').forEach(inp=>{
     inp.onchange=()=>{ state[inp.dataset.prone].prone=inp.checked; recompute(); };
+  });
+  side.querySelectorAll('[data-rot]').forEach(b=>{
+    b.onclick=()=>{ const [k,dd]=b.dataset.rot.split(':'); rotateUnit(state[k],+dd); };
   });
   wireGator();
 }
@@ -1410,10 +1569,46 @@ function wireGator(){
 }
 function unitCard(u,col,name,tag){
   const hex=hx(u.hex.q,u.hex.r);
+  const key=tag==='A'?'atk':'tgt';
+  const f=u.facing||0;
   return `<div class="ucard">
     <div class="uh"><span class="usw" style="background:${col}"></span>${name} · ${hexLabel(u.hex)}</div>
     <div class="um">${terrName(hex)}, Level ${hex.level}${hex.terrain==='water'?` (Tiefe ${hex.depth||0})`:''}<br>Sichthöhe: ${unitAbsHeight(state.map,u)}</div>
-    <label><input type="checkbox" data-prone="${tag==='A'?'atk':'tgt'}" ${u.prone?'checked':''}> liegend (prone)</label>
+    <div class="facerow">
+      <button data-rot="${key}:-1" title="Gegen den Uhrzeigersinn drehen">⟲</button>
+      <span class="fdir"><svg viewBox="0 0 24 24" fill="currentColor" style="transform:rotate(${FACING_ANG[f]+90}deg)"><path d="M12 2l6 18-6-4.5L6 20z"/></svg>${FACING_NAMES[f]}</span>
+      <button data-rot="${key}:1" title="Im Uhrzeigersinn drehen">⟳</button>
+    </div>
+    <label><input type="checkbox" data-prone="${key}" ${u.prone?'checked':''}> liegend (prone)</label>
+  </div>`;
+}
+function dirHtml(res){
+  if(!res||res.sameHex||!res.dir) return '';
+  const d=res.dir;
+  const names={front:'Front',left:'Linke Seite',right:'Rechte Seite',rear:'Heck'};
+  const cls=d.side==='front'?'arc-front':d.side==='rear'?'arc-rear':'arc-side';
+  const badge=`<div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+    <span class="arcbadge ${cls}">${names[d.side]}</span>
+    <span style="font-size:12px;color:var(--sub)">Einfallswinkel ${Math.round(d.fa)}° aus Zielsicht</span></div>`;
+  if(res.rb.id==='as'){
+    return `<h3 class="sect">Angriffsrichtung</h3><div class="vcard">${badge}
+      <div class="vsub">Alpha Strike nutzt keine Trefferzonentabellen — die Ausrichtung ist dort vor allem für Fahrzeug- und Turret-Feuerwinkel relevant. Zum Üben der Trefferzonen auf BMM oder TW umschalten.</div></div>`;
+  }
+  const tbl=d.side==='left'?'Spalte »Linke Seite«':d.side==='right'?'Spalte »Rechte Seite«':'Spalte »Front/Heck«';
+  let extra='';
+  if(d.side==='rear') extra=`<div class="vsub" style="margin-top:6px"><b>Heckangriff:</b> Torsotreffer gehen auf die (meist dünne) Heckpanzerung.</div>`;
+  if(d.boundary) extra+=`<div class="note" style="margin-top:8px"><b>Grenzfall:</b> Der Angriff liegt exakt auf der Grenze zweier Bögen — hier wie in MegaMek dem frontnäheren Bogen zugeschlagen.</div>`;
+  let twist='';
+  if(res.atkArc&&res.atkArc.side!=='front'){
+    twist=res.atkArc.side==='rear'
+      ?`<div class="note" style="margin-top:8px"><b>Achtung:</b> Das Ziel liegt <b>hinter</b> dem Angreifer — ohne Neuausrichtung kein Schuss (Torso-Twist deckt nur eine Hexseite ab).</div>`
+      :`<div class="note" style="margin-top:8px"><b>Feuerwinkel:</b> Das Ziel liegt seitlich außerhalb des Frontbogens des Angreifers — Torso-Twist (Drehung um eine Hexseite) oder Neuausrichtung nötig.</div>`;
+  }
+  return `<h3 class="sect">Angriffsrichtung & Trefferzonen</h3><div class="vcard">
+    ${badge}
+    <div class="vsub">Trefferzonen-Würfe (2W6) nutzen die <b>${tbl}</b>. Beim »Feuer«-Klick wird To-Hit und Trefferzone gleich mitgewürfelt.</div>
+    ${extra}${twist}
+    <div class="cite" style="margin-top:10px"><b>BMM/TW, »Attack Direction« &amp; »Hit Location«</b> — Frontbogen umfasst die drei vorderen Hexseiten, je eine Hexseite links, rechts und hinten; Front und Heck teilen sich die Trefferspalte, Heckschüsse treffen die Heckpanzerung</div>
   </div>`;
 }
 function terrName(hex){
@@ -1558,8 +1753,10 @@ function loadLesson(i){
     const [q,r]=k.split(',').map(Number);
     setHex(q,r,v);
   }
-  state.atk={hex:{q:l.atk[0],r:l.atk[1]},prone:!!l.atkProne};
-  state.tgt={hex:{q:l.tgt[0],r:l.tgt[1]},prone:!!l.tgtProne};
+  state.atk={hex:{q:l.atk[0],r:l.atk[1]},prone:!!l.atkProne,facing:0};
+  state.tgt={hex:{q:l.tgt[0],r:l.tgt[1]},prone:!!l.tgtProne,facing:0};
+  faceToward(state.atk,state.tgt);
+  faceToward(state.tgt,state.atk);
   if(l.gator) Object.assign(state.gator,l.gator);
   if(l.weapon) document.getElementById('weapon').value=l.weapon;
   recompute();
@@ -1568,10 +1765,28 @@ function loadLesson(i){
 /* ============================================================
    Events
    ============================================================ */
-let drag=null;
-cv.addEventListener('mousedown',e=>{
+/* Pointer-Events: Maus, Stift und Touch in einem — inkl. Pinch-Zoom.
+   Kurzer Tap/Klick auf einen Mech dreht ihn eine Hexseite im Uhrzeigersinn. */
+let drag=null, pinch2d=null, tap2d=null;
+const ptrs=new Map();
+function tryTapRotate(hexc){
+  if(!hexc||state.tool!=='pan'||state.mode==='lessons') return;
+  if(HexGeo.equals(hexc,state.atk.hex)) rotateUnit(state.atk,1);
+  else if(HexGeo.equals(hexc,state.tgt.hex)) rotateUnit(state.tgt,1);
+}
+cv.addEventListener('pointerdown',e=>{
+  cv.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===2){
+    const [a,b]=[...ptrs.values()];
+    pinch2d={d:Math.max(20,Math.hypot(a.x-b.x,a.y-b.y)),zoom:state.zoom,
+      mx:(a.x+b.x)/2,my:(a.y+b.y)/2,panX:state.panX,panY:state.panY};
+    drag=null; tap2d=null;
+    return;
+  }
   const {mx,my}=mouse(e);
   const h=pickHex(mx,my);
+  tap2d={t:performance.now(),x:e.clientX,y:e.clientY,hex:h,moved:false};
   if(state.tool==='photo'){
     if(state.photo.img) drag={photo:true,sx:e.clientX,sy:e.clientY,px:state.photo.x,py:state.photo.y};
     return;
@@ -1587,8 +1802,22 @@ cv.addEventListener('mousedown',e=>{
     drag={paint:true,last:HexGeo.key(h)};
   }
 });
-window.addEventListener('mousemove',e=>{
+cv.addEventListener('pointermove',e=>{
   if(state.style==='gl') return;
+  if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch2d&&ptrs.size>=2){
+    const [a,b]=[...ptrs.values()];
+    const nd=Math.max(20,Math.hypot(a.x-b.x,a.y-b.y));
+    const nz=Math.max(0.3,Math.min(2.4,pinch2d.zoom*nd/pinch2d.d));
+    const r=cv.getBoundingClientRect();
+    const cmx=(a.x+b.x)/2-r.left, cmy=(a.y+b.y)/2-r.top;
+    const smx=pinch2d.mx-r.left, smy=pinch2d.my-r.top;
+    state.zoom=nz;
+    state.panX=cmx-(smx-pinch2d.panX)*(nz/pinch2d.zoom);
+    state.panY=cmy-(smy-pinch2d.panY)*(nz/pinch2d.zoom);
+    return;
+  }
+  if(tap2d&&Math.hypot(e.clientX-tap2d.x,e.clientY-tap2d.y)>8) tap2d.moved=true;
   const {mx,my}=mouse(e);
   if(drag){
     if(drag.pan){
@@ -1619,7 +1848,14 @@ window.addEventListener('mousemove',e=>{
     chip.innerHTML=`Hex <b>${hexLabel(h)}</b> · ${esc(terrName(cell))}`;
   } else chip.textContent='—';
 });
-window.addEventListener('mouseup',()=>{ drag=null; cv.style.cursor=''; });
+function endPtr2d(e){
+  ptrs.delete(e.pointerId);
+  if(ptrs.size<2) pinch2d=null;
+  if(e.type==='pointerup'&&tap2d&&!tap2d.moved&&performance.now()-tap2d.t<400) tryTapRotate(tap2d.hex);
+  tap2d=null; drag=null; cv.style.cursor='';
+}
+cv.addEventListener('pointerup',endPtr2d);
+cv.addEventListener('pointercancel',endPtr2d);
 cv.addEventListener('wheel',e=>{
   e.preventDefault();
   const {mx,my}=mouse(e);
@@ -1660,6 +1896,7 @@ document.querySelectorAll('#styleseg button').forEach(b=>{
     document.querySelectorAll('#styleseg button').forEach(x=>x.classList.toggle('on',x===b));
     const is3d=st==='gl';
     document.getElementById('gl3d').style.display=is3d?'block':'none';
+    document.getElementById('glvig').style.display=is3d?'block':'none';
     cv.style.display=is3d?'none':'block';
     if(is3d){ glResize(); glSync(true); }
   };
@@ -1716,6 +1953,16 @@ function resize(){
   if(typeof GL!=='undefined'&&GL.ready) glResize();
 }
 window.addEventListener('resize',()=>{ resize(); });
+// Bühne direkt beobachten: fängt späte Layout-Wechsel (dvh, Rotation,
+// eingebettete Browser) ab und zentriert neu, wenn die Karte vorher zu klein war
+let lastStageW=0;
+new ResizeObserver(()=>{
+  const w=document.getElementById('stage').clientWidth;
+  if(!w) return;
+  resize();
+  if(lastStageW<200&&w>=200) centerMap();
+  lastStageW=w;
+}).observe(document.getElementById('stage'));
 let lastAuto=0;
 function loop(t){
   state.time=t;
@@ -1735,6 +1982,16 @@ function loop(t){
   if(state.style==='gl'&&typeof GL!=='undefined'&&GL.ready) glRender(t); else drawScene();
   requestAnimationFrame(loop);
 }
+document.getElementById('sidehandle').onclick=()=>{
+  document.body.classList.toggle('sidedown');
+};
+document.getElementById('side').addEventListener('transitionend',e=>{
+  if(e.propertyName==='height'){ resize(); centerMap(); }
+});
+if(matchMedia('(max-width:920px)').matches){
+  document.getElementById('profcard').classList.add('min');
+  document.getElementById('proftoggle').textContent='+';
+}
 defaultMap();
 buildRail();
 document.getElementById('rbchip').innerHTML='Regeln: <b>BattleMech Manual</b>';
@@ -1750,9 +2007,12 @@ requestAnimationFrame(loop);
 const GL={ready:false,builtRev:-1,hexMeshes:[],shots:[],mats:{},geos:{},tex:{}};
 const HX3=1, LH3=0.5, SLAB=0.42;
 function wpos(q,r){ return {x:q*1.5*HX3, z:(r+q/2)*Math.sqrt(3)*HX3}; }
+/* r128-Farbraum: Renderer gibt sRGB aus, CSS-Farben und Canvas-Texturen sind
+   ebenfalls sRGB — ohne Konvertierung wäscht alles pastellig aus */
+function srgb(c){ return new THREE.Color(c).convertSRGBToLinear(); }
 function glMat(color,opts){
   const key=color+JSON.stringify(opts||{});
-  if(!GL.mats[key]) GL.mats[key]=new THREE.MeshStandardMaterial(Object.assign({color:new THREE.Color(color),roughness:0.82,metalness:0.05},opts||{}));
+  if(!GL.mats[key]) GL.mats[key]=new THREE.MeshStandardMaterial(Object.assign({color:srgb(color),roughness:0.82,metalness:0.05},opts||{}));
   return GL.mats[key];
 }
 function glHexGeo(h){
@@ -1779,7 +2039,17 @@ function glNoise(key,base,specks){
     }
   }
   x.globalAlpha=1;
+  // Hexkante ins Cap-UV zeichnen — ergibt saubere Brettspiel-Linien auf jedem Feld
+  x.strokeStyle='rgba(10,12,8,0.55)'; x.lineWidth=3.5;
+  x.beginPath();
+  for(let i=0;i<=6;i++){
+    const a=Math.PI/3*i;
+    const px=64+61*Math.cos(a), py=64+61*Math.sin(a);
+    if(i) x.lineTo(px,py); else x.moveTo(px,py);
+  }
+  x.stroke();
   GL.tex[key]=new THREE.CanvasTexture(c);
+  GL.tex[key].encoding=THREE.sRGBEncoding;
   return GL.tex[key];
 }
 function glTopMat(key,base,specks){
@@ -1805,15 +2075,16 @@ function glEnsure(){
   GL.renderer.toneMapping=THREE.ACESFilmicToneMapping;
   GL.renderer.toneMappingExposure=1.15;
   GL.scene=new THREE.Scene();
-  GL.scene.background=new THREE.Color(0x16202e);
-  GL.scene.fog=new THREE.Fog(0x16202e,42,95);
+  GL.scene.background=glSkyTex();
+  GL.scene.fog=new THREE.Fog(srgb(0x131c2a),46,110);
   GL.camera=new THREE.PerspectiveCamera(40,1,0.1,300);
   GL.orbit={theta:-0.62,phi:0.95,R:26};
+  GL.orbitT={theta:-0.62,phi:0.95,R:26};
   const a=wpos(0,0), b=wpos(COLS-1,ROWS-1), c2=wpos(COLS-1,0), d=wpos(0,ROWS-1);
   GL.center={x:(a.x+b.x)/2, z:(Math.min(a.z,c2.z,d.z)+Math.max(b.z,c2.z,d.z))/2};
-  GL.scene.add(new THREE.HemisphereLight(0xcfe0f2,0x2b2216,0.8));
-  GL.scene.add(new THREE.AmbientLight(0x333a4c,0.55));
-  const sun=new THREE.DirectionalLight(0xffe9c4,1.3);
+  GL.scene.add(new THREE.HemisphereLight(0xaac4e4,0x2a2114,0.5));
+  GL.scene.add(new THREE.AmbientLight(0x2c3448,0.38));
+  const sun=new THREE.DirectionalLight(0xffdda3,1.3);
   sun.position.set(GL.center.x+13,24,GL.center.z-9);
   sun.target.position.set(GL.center.x,0,GL.center.z);
   sun.castShadow=true;
@@ -1822,12 +2093,23 @@ function glEnsure(){
   sun.shadow.camera.top=19; sun.shadow.camera.bottom=-19;
   sun.shadow.camera.far=80; sun.shadow.bias=-0.0004;
   GL.scene.add(sun); GL.scene.add(sun.target);
+  // Kühles Gegenlicht hebt Silhouetten ab, warmer Schein wie eine Vitrinenlampe
+  const rim=new THREE.DirectionalLight(0x6f9fd8,0.4);
+  rim.position.set(GL.center.x-16,9,GL.center.z+15);
+  GL.scene.add(rim);
+  const glow=new THREE.PointLight(0xffb066,0.25,42);
+  glow.position.set(GL.center.x,7,GL.center.z);
+  GL.scene.add(glow);
   const spanX=(COLS-1)*1.5+3.6, spanZ=(ROWS+0.5)*Math.sqrt(3)+2.2;
   const plinth=new THREE.Mesh(new THREE.BoxGeometry(spanX,1.5,spanZ),
     new THREE.MeshStandardMaterial({map:glWoodTex(),roughness:0.7}));
   plinth.position.set(GL.center.x,-0.75,GL.center.z);
   plinth.receiveShadow=true;
   GL.scene.add(plinth);
+  const trim=new THREE.Mesh(new THREE.BoxGeometry(spanX+0.55,0.34,spanZ+0.55),
+    new THREE.MeshStandardMaterial({color:0x1e1610,roughness:0.5,metalness:0.3}));
+  trim.position.set(GL.center.x,-1.56,GL.center.z);
+  GL.scene.add(trim);
   GL.terrain=new THREE.Group(); GL.units=new THREE.Group();
   GL.los=new THREE.Group(); GL.fx=new THREE.Group();
   GL.scene.add(GL.terrain); GL.scene.add(GL.units); GL.scene.add(GL.los); GL.scene.add(GL.fx);
@@ -1839,17 +2121,56 @@ function glEnsure(){
   }
   const pg=new THREE.BufferGeometry();
   pg.setAttribute('position',new THREE.BufferAttribute(pos,3));
-  GL.dust=new THREE.Points(pg,new THREE.PointsMaterial({color:0xfff4dd,size:0.045,transparent:true,opacity:0.38}));
+  GL.dust=new THREE.Points(pg,new THREE.PointsMaterial({color:srgb(0xfff4dd),size:0.045,transparent:true,opacity:0.38}));
   GL.scene.add(GL.dust);
   const rp=[];
   for(let i=0;i<=6;i++){ const an=Math.PI/3*i; rp.push(new THREE.Vector3(Math.cos(an),0,Math.sin(an))); }
   GL.hover=new THREE.Line(new THREE.BufferGeometry().setFromPoints(rp),
-    new THREE.LineBasicMaterial({color:0xf5c069,transparent:true,opacity:0.95}));
+    new THREE.LineBasicMaterial({color:srgb(0xf5c069),transparent:true,opacity:0.95}));
   GL.hover.visible=false; GL.scene.add(GL.hover);
   GL.raycaster=new THREE.Raycaster();
   GL.ready=true;
   glResize(); glEvents(); glSync(true);
   return true;
+}
+function glSkyTex(){
+  if(GL.tex.sky) return GL.tex.sky;
+  const c=document.createElement('canvas'); c.width=64; c.height=512;
+  const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,512);
+  g.addColorStop(0,'#0a0f1a'); g.addColorStop(0.45,'#182338');
+  g.addColorStop(0.60,'#2e405c'); g.addColorStop(0.655,'#7a5b40');
+  g.addColorStop(0.69,'#1c2331'); g.addColorStop(1,'#0b0e15');
+  x.fillStyle=g; x.fillRect(0,0,64,512);
+  // Ein paar ferne Sterne im oberen Drittel
+  for(let i=0;i<40;i++){
+    x.globalAlpha=0.25+Math.random()*0.5;
+    x.fillStyle='#cfe0f2';
+    x.fillRect(Math.random()*64,Math.random()*220,1,1);
+  }
+  x.globalAlpha=1;
+  GL.tex.sky=new THREE.CanvasTexture(c);
+  GL.tex.sky.encoding=THREE.sRGBEncoding;
+  return GL.tex.sky;
+}
+function glWaterTex(){
+  if(GL.tex.waterN) return GL.tex.waterN;
+  const c=document.createElement('canvas'); c.width=c.height=128;
+  const x=c.getContext('2d');
+  x.fillStyle='#4d84a9'; x.fillRect(0,0,128,128);
+  for(let i=0;i<26;i++){
+    x.strokeStyle=`rgba(${190+Math.random()*50|0},${215+Math.random()*30|0},240,${(0.07+Math.random()*0.15).toFixed(2)})`;
+    x.lineWidth=0.8+Math.random()*1.6;
+    const y=Math.random()*128;
+    x.beginPath(); x.moveTo(0,y);
+    x.bezierCurveTo(40,y+Math.random()*10-5,88,y+Math.random()*10-5,128,y);
+    x.stroke();
+  }
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.encoding=THREE.sRGBEncoding;
+  GL.tex.waterN=t;
+  return t;
 }
 function glWoodTex(){
   if(GL.tex.wood) return GL.tex.wood;
@@ -1865,6 +2186,7 @@ function glWoodTex(){
   }
   GL.tex.wood=new THREE.CanvasTexture(c);
   GL.tex.wood.wrapS=GL.tex.wood.wrapT=THREE.RepeatWrapping;
+  GL.tex.wood.encoding=THREE.sRGBEncoding;
   return GL.tex.wood;
 }
 function glWinTex(){
@@ -1877,6 +2199,7 @@ function glWinTex(){
     x.fillRect(10+gx*30,10+gy*24,16,12);
   }
   GL.tex.win=new THREE.CanvasTexture(c);
+  GL.tex.win.encoding=THREE.sRGBEncoding;
   return GL.tex.win;
 }
 function glClear(group){
@@ -1904,7 +2227,12 @@ function glRebuildTerrain(){
       m.castShadow=m.receiveShadow=true; m.userData={q:q,r:r};
       GL.terrain.add(m); GL.hexMeshes.push(m);
       const wh=Math.max(0.06,topY-gh);
-      const wm=new THREE.Mesh(glHexGeo(wh),glMat(cols[0],{transparent:true,opacity:0.72,roughness:0.22,metalness:0.12}));
+      if(!GL.mats.water){
+        GL.mats.water=new THREE.MeshStandardMaterial({
+          color:srgb('#6fb0dd'),map:glWaterTex(),transparent:true,opacity:0.76,
+          roughness:0.14,metalness:0.22,emissive:srgb(0x14405e),emissiveIntensity:0.35});
+      }
+      const wm=new THREE.Mesh(glHexGeo(wh),GL.mats.water);
       wm.position.set(w.x,gh+wh/2,w.z);
       wm.userData={q:q,r:r};
       GL.waterMat=wm.material;
@@ -1948,7 +2276,7 @@ function glRebuildTerrain(){
     if(hex.terrain==='building'){
       const bh=(hex.bldgHeight||1)*LH3;
       if(!GL.geos.box) GL.geos.box=new THREE.BoxGeometry(1.28,1,1.28);
-      if(!GL.mats.bldg) GL.mats.bldg=new THREE.MeshStandardMaterial({map:glWinTex(),color:0xaeb4c2,roughness:0.6,emissive:new THREE.Color(0xffc069),emissiveIntensity:0.18,emissiveMap:glWinTex()});
+      if(!GL.mats.bldg) GL.mats.bldg=new THREE.MeshStandardMaterial({map:glWinTex(),color:srgb(0xaeb4c2),roughness:0.6,emissive:srgb(0xffc069),emissiveIntensity:0.18,emissiveMap:glWinTex()});
       const bm=new THREE.Mesh(GL.geos.box,GL.mats.bldg);
       bm.scale.y=bh; bm.position.set(w.x,topY+bh/2,w.z);
       bm.castShadow=bm.receiveShadow=true;
@@ -1971,10 +2299,10 @@ function glRebuildTerrain(){
 }
 function glMech(color){
   const g=new THREE.Group();
-  const paint=new THREE.MeshStandardMaterial({color:new THREE.Color(color),roughness:0.4,metalness:0.55});
-  const paintD=new THREE.MeshStandardMaterial({color:new THREE.Color(shade(color,0.66)),roughness:0.48,metalness:0.5});
-  const joint=new THREE.MeshStandardMaterial({color:0x23262c,roughness:0.6,metalness:0.65});
-  const steel=new THREE.MeshStandardMaterial({color:0x3a3e46,roughness:0.3,metalness:0.85});
+  const paint=new THREE.MeshStandardMaterial({color:srgb(color),roughness:0.4,metalness:0.55});
+  const paintD=new THREE.MeshStandardMaterial({color:srgb(shade(color,0.66)),roughness:0.48,metalness:0.5});
+  const joint=new THREE.MeshStandardMaterial({color:srgb(0x23262c),roughness:0.6,metalness:0.65});
+  const steel=new THREE.MeshStandardMaterial({color:srgb(0x3a3e46),roughness:0.3,metalness:0.85});
   function P(geo,mat,x,y,z,rx,ry,rz){
     const m=new THREE.Mesh(geo,mat);
     m.position.set(x,y,z);
@@ -2006,28 +2334,52 @@ function glMech(color){
   P(C(0.05,0.04,0.3),steel,-0.41,0.47,0.16,Math.PI/2);
   P(B(0.2,0.14,0.2),paintD,0,1.02,0.02);
   const canopy=new THREE.Mesh(B(0.15,0.07,0.04),
-    new THREE.MeshStandardMaterial({color:0xffd98a,emissive:new THREE.Color(0xffb84d),emissiveIntensity:0.9,roughness:0.2,metalness:0.3}));
+    new THREE.MeshStandardMaterial({color:srgb(0xffd98a),emissive:srgb(0xffb84d),emissiveIntensity:0.9,roughness:0.2,metalness:0.3}));
   canopy.position.set(0,1.03,0.13); g.add(canopy);
   P(C(0.008,0.008,0.16,5),steel,0.1,1.16,-0.04);
   const base=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.52,0.05,24),
-    new THREE.MeshStandardMaterial({color:new THREE.Color(shade(color,0.8)),roughness:0.35,metalness:0.3,emissive:new THREE.Color(color),emissiveIntensity:0.25}));
+    new THREE.MeshStandardMaterial({color:srgb(shade(color,0.8)),roughness:0.35,metalness:0.3,emissive:srgb(color),emissiveIntensity:0.25}));
   base.position.y=0.028; base.receiveShadow=true; g.add(base);
+  return g;
+}
+function glArcRing(){
+  // Bodenring mit den vier Angriffsbögen: Front grün, Seiten bernstein, Heck rot.
+  // Lokaler Frame: Modellfront = +z (φ 90°); Ring-Theta t entspricht -φ.
+  const g=new THREE.Group();
+  const zones=[[0,180,0x5cb371,0.4],[180,240,0xe8a33d,0.45],[240,300,0xd6533a,0.5],[300,360,0xe8a33d,0.45]];
+  for(const [a1,a2,col,op] of zones){
+    const geo=new THREE.RingGeometry(0.68,0.8,20,1,-a2*Math.PI/180,(a2-a1)*Math.PI/180);
+    const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:srgb(col),transparent:true,opacity:op,side:THREE.DoubleSide,depthWrite:false}));
+    m.rotation.x=-Math.PI/2;
+    g.add(m);
+  }
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.26,4),
+    new THREE.MeshBasicMaterial({color:srgb(0xf5c069),transparent:true,opacity:0.9}));
+  tip.rotation.x=Math.PI/2; tip.position.set(0,0.02,0.92);
+  g.add(tip);
   return g;
 }
 function glUnits(){
   if(!GL.mechA){
     GL.mechA=glMech('#d6533a'); GL.mechB=glMech('#4f93d8');
+    GL.ringA=glArcRing(); GL.ringB=glArcRing();
     GL.units.add(GL.mechA); GL.units.add(GL.mechB);
+    GL.units.add(GL.ringA); GL.units.add(GL.ringB);
   }
-  const pairs=[[GL.mechA,state.atk],[GL.mechB,state.tgt]];
-  for(const [g,u] of pairs){
+  const pairs=[[GL.mechA,state.atk,GL.ringA],[GL.mechB,state.tgt,GL.ringB]];
+  for(const [g,u,ring] of pairs){
     const hex=hx(u.hex.q,u.hex.r), w=wpos(u.hex.q,u.hex.r);
     let ground=hex.level;
     if(hex.terrain==='water') ground=hex.level-(hex.depth||0);
     const y=SLAB+ground*LH3+(u.prone?0.14:0);
+    const fb=FACING_ANG[u.facing||0]*Math.PI/180;
+    const yaw=Math.atan2(Math.cos(fb),Math.sin(fb));
     g.position.set(w.x,y,w.z);
-    g.rotation.set(u.prone?-1.42:0,0,0);
+    g.rotation.order='YXZ';
+    g.rotation.set(u.prone?-1.42:0,yaw,0);
     g.userData.baseY=y;
+    ring.position.set(w.x,SLAB+ground*LH3+0.04,w.z);
+    ring.rotation.y=yaw;
   }
 }
 function glEye(u){
@@ -2044,6 +2396,7 @@ function glSprite(text,color,pos){
   x.textAlign='center'; x.textBaseline='middle';
   x.fillText(text,48,52);
   const tx=new THREE.CanvasTexture(c);
+  tx.encoding=THREE.sRGBEncoding;
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,depthTest:false,transparent:true}));
   sp.scale.set(0.62,0.62,1); sp.position.copy(pos);
   sp.userData.tmp=true;
@@ -2055,12 +2408,31 @@ function glLos(){
   if(!res||res.sameHex) return;
   const A=glEye(state.atk), B=glEye(state.tgt);
   function seg(p1,p2,color){
-    const geo=new THREE.BufferGeometry().setFromPoints([p1,p2]);
-    const mat=new THREE.LineDashedMaterial({color:color,dashSize:0.34,gapSize:0.2,transparent:true,opacity:0.95});
-    const ln=new THREE.Line(geo,mat);
-    ln.computeLineDistances();
-    ln.userData.tmp=true;
-    GL.los.add(ln);
+    // Gestrichelte Linie aus dünnen Zylindern — im Diorama deutlich besser
+    // sichtbar als eine 1px-GL-Line
+    if(!GL.geos.losSeg) GL.geos.losSeg=new THREE.CylinderGeometry(0.045,0.045,1,6);
+    const dir=new THREE.Vector3().subVectors(p2,p1);
+    const len=dir.length();
+    const n=Math.max(1,Math.round(len/0.5));
+    const step=dir.clone().divideScalar(n);
+    const mat=new THREE.MeshBasicMaterial({color:srgb(color),transparent:true,opacity:0.92});
+    const up=new THREE.Vector3(0,1,0);
+    for(let i=0;i<n;i++){
+      const a=p1.clone().add(step.clone().multiplyScalar(i+0.1));
+      const b=p1.clone().add(step.clone().multiplyScalar(i+0.62));
+      const m=new THREE.Mesh(GL.geos.losSeg,mat);
+      m.position.copy(a.clone().add(b).multiplyScalar(0.5));
+      m.scale.set(1,a.distanceTo(b),1);
+      m.quaternion.setFromUnitVectors(up,b.clone().sub(a).normalize());
+      m.userData.tmp=true;
+      GL.los.add(m);
+    }
+    const glowM=new THREE.Mesh(GL.geos.losSeg,new THREE.MeshBasicMaterial({color:srgb(color),transparent:true,opacity:0.16}));
+    glowM.position.copy(p1.clone().add(p2).multiplyScalar(0.5));
+    glowM.scale.set(3.4,len,3.4);
+    glowM.quaternion.setFromUnitVectors(up,dir.clone().normalize());
+    glowM.userData.tmp=true;
+    GL.los.add(glowM);
   }
   if(res.blocked&&res.blockHexKey){
     const [q,r]=res.blockHexKey.split(',').map(Number);
@@ -2087,14 +2459,18 @@ function glLos(){
   }
 }
 function glFloat(text,color,pos){
-  const c=document.createElement('canvas'); c.width=256; c.height=64;
+  const c=document.createElement('canvas'); c.width=512; c.height=64;
   const x=c.getContext('2d');
-  x.font='600 30px Inter,system-ui'; x.textAlign='center'; x.textBaseline='middle';
-  x.fillStyle='rgba(0,0,0,0.55)'; x.fillText(text,130,34);
-  x.fillStyle=color; x.fillText(text,128,32);
+  let fs=30;
+  x.font='600 30px Inter,system-ui';
+  while(fs>15&&x.measureText(text).width>490){ fs-=2; x.font=`600 ${fs}px Inter,system-ui`; }
+  x.textAlign='center'; x.textBaseline='middle';
+  x.fillStyle='rgba(0,0,0,0.55)'; x.fillText(text,258,34);
+  x.fillStyle=color; x.fillText(text,256,32);
   const tx=new THREE.CanvasTexture(c);
+  tx.encoding=THREE.sRGBEncoding;
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,depthTest:false,transparent:true}));
-  sp.scale.set(2.6,0.65,1); sp.position.copy(pos);
+  sp.scale.set(5.2,0.65,1); sp.position.copy(pos);
   sp.userData={tmp:true,float:true,t:0};
   GL.fx.add(sp);
 }
@@ -2114,9 +2490,17 @@ function glFire(res){
   if(wpn==='laser'||wpn==='mlaser'||wpn==='ppc'){
     const col=wpn==='ppc'?0x6eb4ff:0xff4030;
     const geo=new THREE.BufferGeometry().setFromPoints([A,end]);
-    const ln=new THREE.Line(geo,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:1}));
+    const ln=new THREE.Line(geo,new THREE.LineBasicMaterial({color:srgb(col),transparent:true,opacity:1}));
     ln.userData.tmp=true;
     s.objs.push(ln); s.line=ln; GL.fx.add(ln);
+    // Sichtbarer Strahlkörper — die GL-Line allein ist nur 1px dünn
+    if(!GL.geos.beam) GL.geos.beam=new THREE.CylinderGeometry(1,1,1,8);
+    const bm=new THREE.Mesh(GL.geos.beam,new THREE.MeshBasicMaterial({color:srgb(col),transparent:true,opacity:0.85}));
+    bm.position.copy(A.clone().add(end).multiplyScalar(0.5));
+    bm.scale.set(0.03,A.distanceTo(end),0.03);
+    bm.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),end.clone().sub(A).normalize());
+    bm.userData.tmp=true;
+    s.objs.push(bm); s.beam=bm; GL.fx.add(bm);
   }else{
     if(!GL.geos.ball) GL.geos.ball=new THREE.SphereGeometry(0.06,8,8);
     s.balls=[];
@@ -2134,16 +2518,22 @@ function glFire(res){
   GL.shots.push(s);
   let label='Blockiert!', col2='#ef8570';
   if(hit){
-    const gc=gatorCalc(res);
-    label=gc&&!gc.out?('TN '+gc.tn+' | '+gc.prob.toFixed(0)+' %'):(gc&&gc.out?'Ausser Reichweite!':'Treffer moeglich');
-    col2='#f5c069';
+    const rs=resolveShot(res);
+    label=rs.label; col2=rs.col;
   }
   glFloat(label,col2,end.clone().add(new THREE.Vector3(0,0.7,0)));
 }
 let glLastT=0;
 function glRender(t){
   const dt=Math.min(50,t-(glLastT||t)); glLastT=t;
-  const o=GL.orbit, c=GL.center;
+  const o=GL.orbit, T=GL.orbitT, c=GL.center;
+  // Sanft zur Zielposition gleiten — nimmt dem Orbit das Ruckeln
+  const k=Math.min(1,dt*0.014);
+  o.theta+=(T.theta-o.theta)*k; o.phi+=(T.phi-o.phi)*k; o.R+=(T.R-o.R)*k;
+  if(GL.mats.water&&GL.mats.water.map){
+    GL.mats.water.map.offset.x=t*0.000028;
+    GL.mats.water.map.offset.y=Math.sin(t*0.00045)*0.04;
+  }
   GL.camera.position.set(
     c.x+o.R*Math.sin(o.phi)*Math.cos(o.theta),
     o.R*Math.cos(o.phi),
@@ -2160,10 +2550,16 @@ function glRender(t){
     GL.mechA.position.y=GL.mechA.userData.baseY+(state.atk.prone?0:Math.sin(t*0.0016)*0.015);
     GL.mechB.position.y=GL.mechB.userData.baseY+(state.tgt.prone?0:Math.sin(t*0.0016+2)*0.015);
   }
-  if(GL.waterMat) GL.waterMat.opacity=0.66+Math.sin(t*0.0012)*0.07;
+  if(GL.waterMat) GL.waterMat.opacity=0.73+Math.sin(t*0.0012)*0.06;
   for(const s of GL.shots){
     s.t+=dt;
     const k=Math.min(1,s.t/s.dur);
+    if(s.beam){
+      const alpha=Math.max(0,k<0.15?k/0.15:1-(k-0.15)/0.85);
+      s.beam.material.opacity=alpha*(s.wpn==='ppc'?0.45+Math.random()*0.4:0.85);
+      const w2=1+Math.sin(Math.min(1,k)*Math.PI)*0.7;
+      s.beam.scale.x=0.03*w2; s.beam.scale.z=0.03*w2;
+    }
     if(s.line){
       s.line.material.opacity=s.wpn==='ppc'?(1-k)*(0.6+Math.random()*0.4):Math.max(0,k<0.15?k/0.15:1-(k-0.15)/0.85);
       if(s.wpn==='ppc'){
@@ -2219,8 +2615,14 @@ function glResize(){
   const st=document.getElementById('stage');
   GL.renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
   GL.renderer.setSize(st.clientWidth,st.clientHeight,false);
-  GL.camera.aspect=st.clientWidth/st.clientHeight;
+  const aspect=st.clientWidth/Math.max(1,st.clientHeight);
+  GL.camera.aspect=aspect;
   GL.camera.updateProjectionMatrix();
+  // Schmale (Hochkant-)Viewports brauchen mehr Abstand, um das Brett zu fassen
+  if(aspect<0.9){
+    const need=Math.min(60,28/aspect);
+    if(GL.orbitT.R<need){ GL.orbitT.R=need; GL.orbit.R=need; }
+  }
 }
 function glSync(force){
   if(!GL.ready) return;
@@ -2229,7 +2631,8 @@ function glSync(force){
 }
 function glEvents(){
   const el=GL.renderer.domElement;
-  let gd=null;
+  let gd=null, gpinch=null, gtap=null;
+  const gp=new Map();
   function pick(e){
     const r2=el.getBoundingClientRect();
     const v=new THREE.Vector2(((e.clientX-r2.left)/r2.width)*2-1,-((e.clientY-r2.top)/r2.height)*2+1);
@@ -2237,26 +2640,43 @@ function glEvents(){
     const hits=GL.raycaster.intersectObjects(GL.hexMeshes);
     return hits.length?hits[0].object.userData:null;
   }
-  el.addEventListener('mousedown',e=>{
+  el.addEventListener('pointerdown',e=>{
+    el.setPointerCapture(e.pointerId);
+    gp.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(gp.size===2){
+      const [a,b]=[...gp.values()];
+      gpinch={d:Math.max(20,Math.hypot(a.x-b.x,a.y-b.y)),R:GL.orbitT.R};
+      gd=null; gtap=null;
+      return;
+    }
     const h=pick(e);
+    gtap={t:performance.now(),x:e.clientX,y:e.clientY,hex:h?{q:h.q,r:h.r}:null,moved:false};
     if(state.tool==='pan'){
       const canEdit=state.mode!=='lessons';
       if(canEdit&&h&&HexGeo.equals(h,state.atk.hex)) gd={unit:state.atk};
       else if(canEdit&&h&&HexGeo.equals(h,state.tgt.hex)) gd={unit:state.tgt};
-      else gd={rot:true,sx:e.clientX,sy:e.clientY,th:GL.orbit.theta,ph:GL.orbit.phi};
+      else gd={rot:true,sx:e.clientX,sy:e.clientY,th:GL.orbitT.theta,ph:GL.orbitT.phi};
     }else if(h&&['mechA','mechB','up','down','clear','tree1','tree2','water','bldg','rough'].includes(state.tool)){
       applyTool({q:h.q,r:h.r});
       gd={paint:true,last:h.q+','+h.r};
     }else{
-      gd={rot:true,sx:e.clientX,sy:e.clientY,th:GL.orbit.theta,ph:GL.orbit.phi};
+      gd={rot:true,sx:e.clientX,sy:e.clientY,th:GL.orbitT.theta,ph:GL.orbitT.phi};
     }
   });
-  window.addEventListener('mousemove',e=>{
+  el.addEventListener('pointermove',e=>{
     if(state.style!=='gl'||!GL.ready) return;
+    if(gp.has(e.pointerId)) gp.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(gpinch&&gp.size>=2){
+      const [a,b]=[...gp.values()];
+      const nd=Math.max(20,Math.hypot(a.x-b.x,a.y-b.y));
+      GL.orbitT.R=Math.max(9,Math.min(46,gpinch.R*gpinch.d/nd));
+      return;
+    }
+    if(gtap&&Math.hypot(e.clientX-gtap.x,e.clientY-gtap.y)>8) gtap.moved=true;
     if(gd){
       if(gd.rot){
-        GL.orbit.theta=gd.th+(e.clientX-gd.sx)*0.0055;
-        GL.orbit.phi=Math.max(0.32,Math.min(1.38,gd.ph-(e.clientY-gd.sy)*0.004));
+        GL.orbitT.theta=gd.th+(e.clientX-gd.sx)*0.0055;
+        GL.orbitT.phi=Math.max(0.32,Math.min(1.38,gd.ph-(e.clientY-gd.sy)*0.004));
       }else if(gd.unit){
         const h=pick(e);
         if(h){
@@ -2276,10 +2696,17 @@ function glEvents(){
     const chip=document.getElementById('hoverchip');
     if(h){ const cell=hx(h.q,h.r); chip.innerHTML='Hex <b>'+hexLabel(h)+'</b> · '+esc(terrName(cell)); }
   });
-  window.addEventListener('mouseup',()=>gd=null);
+  function gend(e){
+    gp.delete(e.pointerId);
+    if(gp.size<2) gpinch=null;
+    if(e.type==='pointerup'&&gtap&&!gtap.moved&&performance.now()-gtap.t<400) tryTapRotate(gtap.hex);
+    gtap=null; gd=null;
+  }
+  el.addEventListener('pointerup',gend);
+  el.addEventListener('pointercancel',gend);
   el.addEventListener('wheel',e=>{
     e.preventDefault();
-    GL.orbit.R=Math.max(9,Math.min(46,GL.orbit.R*(e.deltaY<0?0.92:1.08)));
+    GL.orbitT.R=Math.max(9,Math.min(46,GL.orbitT.R*(e.deltaY<0?0.92:1.08)));
   },{passive:false});
 }
 </script>

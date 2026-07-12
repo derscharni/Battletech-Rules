@@ -9,11 +9,13 @@ Interaktives Lernwerkzeug für die Line-of-Sight- und To-Hit-Regeln des BattleTe
 ## Features
 
 - **LoS-Sandbox**: Karteneditor (Höhen, Wälder, Wasser, Gebäude, Rough), Mechs per Drag platzieren, liegend/stehend umschaltbar. Jede Sichtlinie wird im Diagnose-Panel Hex für Hex erklärt — mit Regelzitat und Seitenangabe.
+- **Ausrichtung & Trefferzonen**: Mechs sind drehbar (Klick/Tap auf den Mech oder ⟲/⟳ im Panel). Die Engine bestimmt den Angriffsbogen (Front, linke/rechte Seite, Heck — Bögen wie MegaMek `Compute.targetSideTable`), zeigt die passende Trefferzonen-Spalte an und warnt, wenn das Ziel außerhalb des Frontbogens des Angreifers liegt (Torso-Twist). Der »Feuer«-Knopf würfelt To-Hit und Trefferzone echt aus — Heckschüsse treffen die Heckpanzerung.
 - **Höhenprofil**: Querschnitt entlang der Sichtlinie zeigt, *warum* eine Linie frei oder blockiert ist.
 - **GATOR-Rechner**: Gunnery, Bewegung beider Seiten, Hitze, Waffe (mit Minimum Range) — Terrain und Distanz kommen automatisch aus der LoS. Ergebnis: Target Number und Trefferwahrscheinlichkeit.
 - **16 Lektionen** in drei Gruppen (Grundlagen, Fortgeschritten, GATOR), inklusive der klassischen Regel-Irrtümer: Zielhex-Wald blockiert nicht, bergab negiert Partial Cover, liegende Mechs verschwinden hinter Level-1-Kanten, der Verteidiger wählt bei geteilter Linie.
 - **Regelbuch-Switcher**: BattleMech Manual, Total Warfare, Alpha Strike: Commander's Edition (Hex-Umrechnung).
-- **Zwei Darstellungen**: „Klar" (2D-isometrisch mit Level-Beschriftung) und „3D" (WebGL-Diorama mit drehbarer Kamera, Schatten und detaillierten Mechs).
+- **Zwei Darstellungen**: „Klar" (2D-isometrisch mit Level-Beschriftung) und „3D" (WebGL-Diorama mit drehbarer Kamera, Abendhimmel, animiertem Wasser, Schatten und detaillierten Mechs samt Ausrichtungsring).
+- **Mobile-tauglich**: Touch- und Stift-Bedienung (Pointer Events), Pinch-Zoom auf Karte und 3D-Kamera, responsives Layout mit einklappbarem Analyse-Panel.
 - **Gefechtssimulation**: Laser, PPC, Autokanone, LRM als animierte Schüsse — blockierte Linien schlagen sichtbar im Hindernis ein.
 - **Foto-Vorlage**: Foto eines echten Mapsheets als halbtransparente Ebene unterlegen und abmalen.
 
@@ -24,7 +26,7 @@ Seitengenau geprüft am *BattleTech: BattleMech Manual* (Catalyst Game Labs, Pro
 ## Entwicklung
 
 - `los-engine.js` — die Regel-Engine als eigenständiges Modul (identisch mit der in der HTML eingebetteten Version)
-- `los-tests.js` — Testsuite: `node los-tests.js` (25 Tests)
+- `los-tests.js` — Testsuite: `node los-tests.js` (38 Tests, inkl. Angriffsrichtung und Trefferzonentabelle)
 
 ## Rechtliches
 

@@ -1,4 +1,4 @@
-const { HexGeo, computeLoS } = require('./los-engine.js');
+const { HexGeo, computeLoS, attackDirection, hitLocation } = require('./los-engine.js');
 
 // Karte bauen: flaches Feld, dann Overrides
 function makeMap(w, h, overrides) {
@@ -188,6 +188,31 @@ function t(name, cond, detail) {
   const m = makeMap(10, 8, { '3,3': { level: 2 } });
   const res = computeLoS(m, U(0, 3), U(6, 3), 'tw');
   t('16 TW: Level-2-Hügel blockiert', res.blocked === true, res.blockReason);
+}
+
+// --- 17. Angriffsrichtung (Bögen wie MegaMek Compute.targetSideTable) ---
+{
+  const atk = { hex: { q: 0, r: 3 } };
+  const F = f => ({ hex: { q: 6, r: 3 }, facing: f });
+  t('17 Ziel schaut zum Angreifer → Front', attackDirection(atk, F(5)).side === 'front', attackDirection(atk, F(5)));
+  t('17b Ziel schaut weg → Heck', attackDirection(atk, F(2)).side === 'rear', attackDirection(atk, F(2)));
+  t('17c Angreifer schräg vorn links → Front', attackDirection(atk, F(0)).side === 'front', attackDirection(atk, F(0)));
+  t('17d Ziel schaut nach Süden → rechte Seite', attackDirection(atk, F(3)).side === 'right', attackDirection(atk, F(3)));
+  const behind = attackDirection({ hex: { q: 3, r: 6 } }, { hex: { q: 3, r: 3 }, facing: 0 });
+  t('17e direkt von hinten → Heck, fa 180°', behind.side === 'rear' && behind.fa === 180, behind);
+  const res = computeLoS(makeMap(10, 8, {}), { hex: { q: 0, r: 3 }, facing: 2 }, { hex: { q: 6, r: 3 }, facing: 2 }, 'bmm');
+  t('17f computeLoS liefert dir/atkArc', res.dir.side === 'rear' && res.atkArc.side === 'front', { dir: res.dir, atkArc: res.atkArc });
+}
+
+// --- 18. Trefferzonentabelle ---
+{
+  t('18 Front, Wurf 7 → Zentraltorso', hitLocation('front', 7).code === 'CT');
+  t('18b Front, Wurf 2 → CT mit Crit-Chance', hitLocation('front', 2).crit === true);
+  t('18c links, Wurf 8 → Zentraltorso', hitLocation('left', 8).code === 'CT');
+  t('18d rechts, Wurf 5 → rechter Arm', hitLocation('right', 5).code === 'RA');
+  t('18e Heck, Wurf 6 → rechter Torso auf Heckpanzerung', hitLocation('rear', 6).code === 'RT' && hitLocation('rear', 6).rearArmor === true);
+  t('18f Heck, Wurf 10 → Arm ohne Heckpanzerung', hitLocation('rear', 10).rearArmor === false);
+  t('18g Wurf 12 → Kopf', hitLocation('left', 12).code === 'HD');
 }
 
 console.log('\n' + pass + ' bestanden, ' + fail + ' fehlgeschlagen');

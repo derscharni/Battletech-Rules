@@ -208,11 +208,49 @@ function finishAnalysis(o,rb,map,tgt){
   o.totalMod=mods.reduce((s,m)=>s+m.value,0);
   return o;
 }
+/* ---------- Ausrichtung & Angriffsrichtung ----------
+   Bögen wie MegaMek Compute.targetSideTable: Front 270°–90° (drei vordere
+   Hexseiten), rechte Seite (90°,150°], Heck (150°,210°), linke Seite [210°,270°).
+   Facing 0–5 = Hexseite, gegen den Uhrzeigersinn ab »Norden« der Karte. */
+const FACING_DIRS=[[0,-1],[1,-1],[1,0],[0,1],[-1,1],[-1,0]];
+const FACING_NAMES=['N','NO','SO','S','SW','NW'];
+const FACING_ANG=[-90,-30,30,90,150,210];
+function hexAngle(a,b){
+  const ax=a.q*1.5, ay=(a.r+a.q/2)*Math.sqrt(3);
+  const bx=b.q*1.5, by=(b.r+b.q/2)*Math.sqrt(3);
+  return Math.atan2(by-ay,bx-ax)*180/Math.PI;
+}
+function attackDirection(atk,tgt){
+  if(HexGeo.equals(atk.hex,tgt.hex)) return null;
+  const deg=hexAngle(tgt.hex,atk.hex);
+  let fa=(deg-FACING_ANG[tgt.facing||0])%360; if(fa<0)fa+=360;
+  fa=Math.round(fa*1000)/1000;
+  let side='front';
+  if(fa>90&&fa<=150) side='right';
+  else if(fa>150&&fa<210) side='rear';
+  else if(fa>=210&&fa<270) side='left';
+  const boundary=fa===90||fa===150||fa===210||fa===270;
+  return {fa,side,boundary};
+}
+/* Trefferzonentabelle (2W6). Front und Heck nutzen dieselbe Spalte —
+   Torsotreffer von hinten gehen aber auf die Heckpanzerung. */
+const HIT_LOCATIONS={CT:'Zentraltorso',LT:'Linker Torso',RT:'Rechter Torso',LA:'Linker Arm',RA:'Rechter Arm',LL:'Linkes Bein',RL:'Rechtes Bein',HD:'Kopf'};
+const HIT_TABLE={
+  front:['CT','RA','RA','RL','RT','CT','LT','LL','LA','LA','HD'],
+  rear: ['CT','RA','RA','RL','RT','CT','LT','LL','LA','LA','HD'],
+  left: ['LT','LL','LA','LA','LL','LT','CT','RT','RA','RL','HD'],
+  right:['RT','RL','RA','RA','RL','RT','CT','LT','LA','LL','HD']
+};
+function hitLocation(side,roll){
+  const code=HIT_TABLE[side||'front'][roll-2];
+  return {code,name:HIT_LOCATIONS[code],crit:roll===2,
+    rearArmor:side==='rear'&&(code==='CT'||code==='LT'||code==='RT')};
+}
 function defenderScore(a){ return (a.blocked?1000:0)+a.totalMod; }
 function computeLoS(map,atk,tgt,rulebookId){
   const rb=RULEBOOKS[rulebookId]||RULEBOOKS.bmm;
   if(HexGeo.equals(atk.hex,tgt.hex)){
-    return {sameHex:true,blocked:false,rows:[],mods:[],totalMod:0,rb};
+    return {sameHex:true,blocked:false,rows:[],mods:[],totalMod:0,rb,dir:null,atkArc:null};
   }
   const p1=HexGeo.line(atk.hex,tgt.hex,+1);
   const p2=HexGeo.line(atk.hex,tgt.hex,-1);
@@ -226,7 +264,9 @@ function computeLoS(map,atk,tgt,rulebookId){
     if(defenderScore(a2)>defenderScore(a1)){ result=a2; altResult=a1; }
     else{ result=a1; altResult=a2; }
   }
-  return Object.assign({sameHex:false,divided,altResult,rb,distance:HexGeo.distance(atk.hex,tgt.hex)},result);
+  return Object.assign({sameHex:false,divided,altResult,rb,distance:HexGeo.distance(atk.hex,tgt.hex),
+    dir:attackDirection(atk,tgt),atkArc:attackDirection(tgt,atk)},result);
 }
 
-if(typeof module!=='undefined'){module.exports={HexGeo,RULEBOOKS,computeLoS,unitAbsHeight,effElevation,woodsTop,isSubmerged};}
+if(typeof module!=='undefined'){module.exports={HexGeo,RULEBOOKS,computeLoS,unitAbsHeight,effElevation,woodsTop,isSubmerged,
+  FACING_DIRS,FACING_NAMES,FACING_ANG,attackDirection,hitLocation,HIT_TABLE,HIT_LOCATIONS};}
