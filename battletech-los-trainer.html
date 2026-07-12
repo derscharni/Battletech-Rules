@@ -1,0 +1,2287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoS Trainer — BattleTech</title>
+<style>
+  :root{
+    --bg:#0d1015; --bg2:#12161d; --panel:#161b23; --card:#1b2129; --card2:#20262f;
+    --line:#2a323d; --line2:#39434f;
+    --txt:#ecead3; --sub:#9aa5b1; --mut:#5f6b78;
+    --amber:#e8a33d; --amber2:#f5c069; --red:#d6533a; --blue:#4f93d8; --green:#5cb371;
+    --r:14px;
+    font-size:15px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+    overflow:hidden; -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  select{font-family:inherit;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;outline:none}
+
+  /* ---------- Header ---------- */
+  header{
+    height:58px; display:flex; align-items:center; gap:18px; padding:0 18px;
+    background:linear-gradient(180deg,#151a22,#10141b); border-bottom:1px solid var(--line);
+  }
+  .logo{display:flex;align-items:center;gap:11px}
+  .logo .mark{
+    width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+    background:linear-gradient(145deg,#e8a33d,#c77b28); color:#171208;
+  }
+  .logo h1{font-size:16px;font-weight:600;letter-spacing:.2px}
+  .logo small{display:block;font-size:10.5px;font-weight:500;color:var(--sub);letter-spacing:1.4px;text-transform:uppercase}
+  .tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:4px}
+  .tabs button{padding:7px 16px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--sub);transition:.18s}
+  .tabs button.on{background:var(--card2);color:var(--txt);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  .spacer{flex:1}
+  .seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:4px;gap:4px}
+  .seg button{padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:500;color:var(--sub);transition:.18s;white-space:nowrap}
+  .seg button.on{background:var(--amber);color:#1d1608}
+  .seg.style button.on{background:var(--card2);color:var(--amber2);box-shadow:inset 0 0 0 1px var(--line2)}
+  .seg label{align-self:center;font-size:11px;color:var(--mut);padding:0 4px 0 8px;letter-spacing:.6px;text-transform:uppercase}
+
+  /* ---------- Layout ---------- */
+  main{display:grid;grid-template-columns:60px 1fr 372px;height:calc(100% - 58px)}
+
+  /* Tool-Leiste */
+  .rail{
+    display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0;
+    background:var(--bg2);border-right:1px solid var(--line);overflow-y:auto;
+  }
+  .rail::-webkit-scrollbar{width:0}
+  .rail button{
+    width:42px;height:42px;border-radius:11px;display:grid;place-items:center;
+    color:var(--sub);transition:.15s;position:relative;
+  }
+  .rail button:hover{background:var(--card);color:var(--txt)}
+  .rail button.on{background:var(--card2);color:var(--amber2);box-shadow:inset 0 0 0 1.5px var(--amber)}
+  .rail button svg{width:21px;height:21px}
+  .rail .div{width:26px;height:1px;background:var(--line);margin:5px 0;flex:none}
+  .rail button .tip{
+    position:absolute;left:52px;top:50%;transform:translateY(-50%);
+    background:#000d;border:1px solid var(--line2);color:var(--txt);
+    font-size:12px;padding:5px 10px;border-radius:8px;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:.15s;z-index:50;
+  }
+  .rail button:hover .tip{opacity:1}
+
+  /* Karte */
+  .stage{position:relative;overflow:hidden;background:#0a0d12}
+  canvas#map{display:block;width:100%;height:100%;cursor:grab}
+  canvas#map.paint{cursor:crosshair}
+  .hud{position:absolute;pointer-events:none}
+  .hud.tl{top:14px;left:16px;display:flex;gap:8px}
+  .chip{
+    pointer-events:auto;font-size:12px;padding:5px 11px;border-radius:99px;
+    background:#0b0e13cc;border:1px solid var(--line);color:var(--sub);backdrop-filter:blur(6px);
+  }
+  .chip b{color:var(--txt);font-weight:600}
+  .firebox{
+    position:absolute;right:16px;bottom:16px;display:flex;align-items:center;gap:9px;
+    background:#0b0e13d9;border:1px solid var(--line);border-radius:14px;padding:9px 11px;
+    backdrop-filter:blur(8px);
+  }
+  .firebox .tag{font-size:10px;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut);margin-right:2px}
+  .firebox button.fire{
+    background:linear-gradient(145deg,#d6533a,#b03a26);color:#fff;font-weight:600;font-size:13px;
+    padding:8px 16px;border-radius:10px;transition:.15s;
+  }
+  .firebox button.fire:hover{filter:brightness(1.12)}
+  .firebox button.auto{font-size:12px;color:var(--sub);border:1px solid var(--line);border-radius:10px;padding:7px 11px}
+  .firebox button.auto.on{color:var(--amber2);border-color:var(--amber);background:#e8a33d14}
+  .profcard{
+    position:absolute;left:16px;bottom:16px;width:min(430px,46%);
+    background:#0e1219e8;border:1px solid var(--line);border-radius:14px;
+    backdrop-filter:blur(8px);overflow:hidden;transition:.2s;
+  }
+  .profcard header2{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;font-size:12px;color:var(--sub);display:flex}
+  .profcard header2 b{color:var(--txt);font-weight:600;font-size:12.5px}
+  .profcard header2 button{color:var(--mut);font-size:15px;line-height:1}
+  .profcard canvas{display:block;width:100%}
+  .profcard.min canvas{display:none}
+
+  /* Rechtes Panel */
+  aside{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:16px}
+  aside::-webkit-scrollbar{width:9px}
+  aside::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px}
+  .vcard{border-radius:var(--r);padding:15px 16px;margin-bottom:13px;border:1px solid var(--line);background:var(--card)}
+  .verdict{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+  .vdot{width:11px;height:11px;border-radius:50%;flex:none}
+  .verdict h2{font-size:16.5px;font-weight:600;letter-spacing:.1px}
+  .verdict.ok .vdot{background:var(--green);box-shadow:0 0 12px #5cb37188}
+  .verdict.mod .vdot{background:var(--amber);box-shadow:0 0 12px #e8a33d88}
+  .verdict.no .vdot{background:var(--red);box-shadow:0 0 12px #d6533a88}
+  .vsub{font-size:12.5px;color:var(--sub);line-height:1.55}
+  .vsub b{color:var(--txt)}
+  .units{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px}
+  .ucard{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--card)}
+  .ucard .uh{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;margin-bottom:5px}
+  .usw{width:9px;height:9px;border-radius:3px}
+  .ucard .um{font-size:11.5px;color:var(--sub);line-height:1.5}
+  .ucard label{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--sub);margin-top:6px;cursor:pointer}
+  .ucard input{accent-color:var(--amber)}
+  h3.sect{font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);margin:17px 2px 8px}
+  .rows{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .rowx{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:var(--card);border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.45}
+  .rowx:last-child{border-bottom:none}
+  .rowx.hl-block{background:#d6533a14}
+  .rowx.hl-woods{background:#e8a33d0d}
+  .rowx .hexno{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--mut);padding-top:1px;flex:none;width:40px}
+  .rowx .fx{flex:1;color:var(--sub)}
+  .rowx .fx .main{color:var(--txt)}
+  .rowx .val{flex:none;font-weight:600;font-size:12px;padding:2px 8px;border-radius:7px}
+  .val.plus{background:#e8a33d1f;color:var(--amber2)}
+  .val.block{background:#d6533a22;color:#ef8570}
+  .val.none{color:var(--mut)}
+  .val.cover{background:#4f93d81f;color:#8fc0ec}
+  .mods{margin-top:12px}
+  .modrow{display:flex;justify-content:space-between;font-size:13px;padding:6px 2px;color:var(--sub)}
+  .modrow b{color:var(--txt);font-weight:500}
+  .modrow.total{border-top:1px solid var(--line);margin-top:4px;padding-top:9px;font-weight:600;color:var(--txt)}
+  .modrow.total span:last-child{color:var(--amber2)}
+  .cite{
+    margin-top:13px;font-size:11.8px;color:var(--sub);line-height:1.6;
+    border-left:2.5px solid var(--amber);padding:2px 0 2px 11px;
+  }
+  .cite+.cite{margin-top:8px}
+  .cite b{color:var(--amber2);font-weight:600}
+  .note{margin-top:12px;font-size:12px;color:var(--sub);background:#4f93d80f;border:1px solid #4f93d833;border-radius:10px;padding:9px 12px;line-height:1.55}
+  .foot{margin-top:18px;font-size:11px;color:var(--mut);line-height:1.6}
+
+  /* Lektionen */
+  .lesson-list button{
+    display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;
+    background:var(--card);padding:12px 14px;margin-bottom:9px;transition:.15s;
+  }
+  .lesson-list button:hover{border-color:var(--line2);background:var(--card2)}
+  .lesson-list .lt{font-size:13.5px;font-weight:600;margin-bottom:3px;display:flex;gap:8px;align-items:center}
+  .lesson-list .ln{width:22px;height:22px;border-radius:7px;background:var(--card2);color:var(--amber2);display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none}
+  .lesson-list .ld{font-size:12px;color:var(--sub);line-height:1.45}
+  .lesson-list button.done .ln{background:#5cb37122;color:var(--green)}
+  .qcard .q{font-size:14.5px;font-weight:600;line-height:1.5;margin-bottom:12px}
+  .qbtns{display:flex;gap:9px}
+  .qbtns button{
+    flex:1;padding:10px;border-radius:11px;border:1px solid var(--line2);
+    font-size:14px;font-weight:600;transition:.15s;background:var(--card2);
+  }
+  .qbtns button:hover{border-color:var(--amber)}
+  .fb{margin-top:12px;padding:11px 13px;border-radius:11px;font-size:13px;line-height:1.55}
+  .fb.ok{background:#5cb37118;border:1px solid #5cb37144;color:#a9dcb5}
+  .fb.no{background:#d6533a15;border:1px solid #d6533a44;color:#efa091}
+  .lnav{display:flex;gap:9px;margin-top:12px}
+  .lnav button{
+    flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:500;
+    border:1px solid var(--line);color:var(--sub);transition:.15s;
+  }
+  .lnav button:hover{color:var(--txt);border-color:var(--line2)}
+  .lnav button.primary{background:var(--amber);color:#1d1608;border:none;font-weight:600}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="mark">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l8.5 5v10L12 22l-8.5-5V7z"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></svg>
+    </div>
+    <div><h1>LoS Trainer</h1><small>BattleTech</small></div>
+  </div>
+  <div class="tabs">
+    <button id="tab-sandbox" class="on">Sandbox</button>
+    <button id="tab-lessons">Lektionen</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="seg" id="rbseg">
+    <label>Regelbuch</label>
+    <button data-rb="bmm" class="on">BattleMech Manual</button>
+    <button data-rb="tw">Total Warfare</button>
+    <button data-rb="as">Alpha Strike</button>
+  </div>
+  <div class="seg style" id="styleseg">
+    <label>Stil</label>
+    <button data-style="clean" class="on">Klar</button>
+    <button data-style="gl">3D</button>
+  </div>
+</header>
+<main>
+  <nav class="rail" id="rail"></nav>
+  <section class="stage" id="stage">
+    <canvas id="map"></canvas>
+    <canvas id="gl3d" style="position:absolute;inset:0;display:none"></canvas>
+    <input type="file" id="photofile" accept="image/*" style="display:none">
+    <div class="hud tl">
+      <span class="chip" id="hoverchip">—</span>
+      <span class="chip" id="rbchip"></span>
+    </div>
+    <div id="photopanel" style="position:absolute;top:14px;right:16px;display:none;flex-direction:column;gap:7px;background:#0b0e13d9;border:1px solid var(--line);border-radius:12px;padding:10px 12px;backdrop-filter:blur(8px);font-size:11.5px;color:var(--sub);width:190px">
+      <b style="color:var(--txt);font-size:12px">Foto-Vorlage</b>
+      <label>Deckkraft <input type="range" id="ph-op" min="10" max="90" value="55" style="width:100%"></label>
+      <label>Größe <input type="range" id="ph-sc" min="20" max="300" value="100" style="width:100%"></label>
+      <span>Verschieben: Foto-Werkzeug wählen und ziehen</span>
+      <button id="ph-rm" style="border:1px solid var(--line);border-radius:8px;padding:4px;color:var(--sub);font-size:11.5px">Vorlage entfernen</button>
+    </div>
+    <div class="profcard" id="profcard">
+      <header2><b>Höhenprofil der Sichtlinie</b><button id="proftoggle">–</button></header2>
+      <canvas id="profile" height="150"></canvas>
+    </div>
+    <div class="firebox">
+      <span class="tag">Gefecht</span>
+      <select id="weapon">
+        <option value="mlaser">Medium Laser</option>
+        <option value="laser" selected>Großlaser</option>
+        <option value="ppc">PPC</option>
+        <option value="ac">AC/5</option>
+        <option value="lrm">LRM-15</option>
+      </select>
+      <button class="fire" id="firebtn">Feuer</button>
+      <button class="auto" id="autobtn">Auto</button>
+    </div>
+  </section>
+  <aside id="side"></aside>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================
+   LoS-Engine — verifiziert gegen MegaMek LosEffects.java
+   (21 Node-Tests bestanden)
+   ============================================================ */
+const HexGeo = {
+  toCube(h){ return {x:h.q, y:-h.q-h.r, z:h.r}; },
+  cubeRound(fx,fy,fz){
+    let x=Math.round(fx), y=Math.round(fy), z=Math.round(fz);
+    const dx=Math.abs(x-fx), dy=Math.abs(y-fy), dz=Math.abs(z-fz);
+    if(dx>dy&&dx>dz) x=-y-z; else if(dy>dz) y=-x-z; else z=-x-y;
+    return {q:x, r:z};
+  },
+  distance(a,b){
+    const ac=this.toCube(a), bc=this.toCube(b);
+    return Math.max(Math.abs(ac.x-bc.x),Math.abs(ac.y-bc.y),Math.abs(ac.z-bc.z));
+  },
+  key(h){ return h.q+','+h.r; },
+  equals(a,b){ return a.q===b.q && a.r===b.r; },
+  line(a,b,eps){
+    const N=this.distance(a,b);
+    if(N===0) return [a];
+    const ac=this.toCube(a), bc=this.toCube(b);
+    const nudge=eps||0, res=[];
+    for(let i=0;i<=N;i++){
+      const t=i/N;
+      const fx=ac.x+(bc.x-ac.x)*t+nudge*1e-6;
+      const fy=ac.y+(bc.y-ac.y)*t+nudge*2e-6;
+      const fz=ac.z+(bc.z-ac.z)*t-nudge*3e-6;
+      const h=this.cubeRound(fx,fy,fz);
+      if(!res.length||!this.equals(res[res.length-1],h)) res.push(h);
+    }
+    return res;
+  }
+};
+function effElevation(hex){
+  let e=hex.level;
+  if(hex.terrain==='building') e+=(hex.bldgHeight||1);
+  return e;
+}
+function woodsTop(hex){
+  return (hex.terrain==='lightWoods'||hex.terrain==='heavyWoods') ? hex.level+2 : null;
+}
+const RULEBOOKS={
+  bmm:{
+    id:'bmm', name:'BattleMech Manual',
+    woodsPts:{lightWoods:1,heavyWoods:2}, woodsBlockAt:3,
+    countTargetHexWoods:false, cumulativeWoodsMod:true,
+    targetInWoodsMod:{lightWoods:1,heavyWoods:2},
+    partialCover:true, partialCoverMod:1,
+    cite:{
+      losBase:'BMM S. 22, »Line of Sight« — Linie von Hexmitte zu Hexmitte; Angreifer- und Zielhex zählen nicht als Zwischenterrain',
+      hill:'BMM S. 23, »Intervening Terrain« — Terrain interveniert, wenn sein Level ≥ beide Mechs ist, oder ≥ einem Mech und direkt angrenzend. Ein intervenierendes Hügel- oder Gebäudehex blockiert. Stehende Mechs sind 2 Level hoch (S. 22)',
+      woods:'BMM S. 22–23, »Woods/Jungle« — Wälder ragen 2 Level über ihr Hex; Light zählt 1 Punkt, Heavy 2; ab 3 Punkten Zwischen-Wald ist die LoS blockiert. Das Zielhex zählt hier NICHT mit (nur als Modifikator, S. 26)',
+      partialCover:'BMM S. 26, »Partial Cover Modifier« — Zielhex-Nachbar exakt 1 Level höher, entlang der LoS: +1, Beintreffer treffen die Deckung. Steht der Angreifer höher, entfällt die Deckung (außer bei Wasser)',
+      divided:'BMM S. 22, »LOS on the Border of Two Hexes« — läuft die Linie exakt auf der Kante, entscheidet der Spieler des Ziels, durch welches Hex sie führt',
+      prone:'BMM S. 22/26 — liegende Mechs sind 1 Level hoch, erhalten kein Partial Cover; hinter einer Level-+1-Kante sind sie komplett verdeckt',
+      water:'BMM S. 23/26/65 — stehend in Tiefe 1: Partial Cover (auch bergab); stehend ab Tiefe 2 oder liegend ab Tiefe 1: vollständig getaucht, LoS blockiert (außer Unterwasserkampf, S. 64)'
+    }
+  },
+  tw:{
+    id:'tw', name:'Total Warfare',
+    woodsPts:{lightWoods:1,heavyWoods:2}, woodsBlockAt:3,
+    countTargetHexWoods:false, cumulativeWoodsMod:true,
+    targetInWoodsMod:{lightWoods:1,heavyWoods:2},
+    partialCover:true, partialCoverMod:1,
+    cite:{
+      losBase:'TW, »Line of Sight« — Linie von Hexmitte zu Hexmitte; gilt für alle Einheitentypen',
+      hill:'TW, »Terrain Restrictions« — Zwischenterrain blockiert, wenn höher als beide Einheiten (oder höher als die angrenzende Einheit)',
+      woods:'TW, »Woods« — Light +1, Heavy +2; 3+ Punkte blockieren. Wälder sind 2 Level hoch.',
+      partialCover:'TW, »Partial Cover« — +1 auf den Angriff, Beintreffer treffen die Deckung',
+      divided:'TW, »Hexside LoS« — zugunsten des Verteidigers aufgelöst',
+      prone:'TW, »Prone Units« — liegende Einheiten sind 1 Level niedriger',
+      water:'TW, »Depth 1 Water« — stehender Mech erhält Partial Cover'
+    }
+  },
+  as:{
+    id:'as', name:'Alpha Strike: CE',
+    woodsPts:{lightWoods:1,heavyWoods:3}, woodsBlockAt:3,
+    countTargetHexWoods:false, cumulativeWoodsMod:false, flatWoodsMod:1,
+    targetInWoodsMod:{lightWoods:1,heavyWoods:1},
+    partialCover:true, partialCoverMod:1,
+    cite:{
+      losBase:'AS:CE, »Line of Sight« — hier auf Hexfeld übertragen (1 Hex ≈ 2")',
+      hill:'AS:CE, »Hills« — Terrain höher als beide Einheiten blockiert',
+      woods:'AS:CE, »Woods« — LoS durch mehr als 2" Heavy Woods (1 Hex) oder 6" Light Woods (3 Hexes) ist blockiert; Wald gibt pauschal +1 auf die Target Number',
+      partialCover:'AS:CE, »Cover« — Ziel in Deckung: +1 Target Number',
+      divided:'AS:CE — Kantenfälle zugunsten des Verteidigers',
+      prone:'AS:CE — liegende Einheiten niedriger (vereinfacht)',
+      water:'AS:CE, »Water« — vereinfacht übernommen'
+    }
+  }
+};
+function unitAbsHeight(map,unit){
+  // BMM S. 22: stehender Mech = 2 Level hoch, liegender = 1 Level.
+  // LoS-Level = Level des Hex + Höhe des Mechs. In Wasser steht er auf dem Grund.
+  const hex=map.get(HexGeo.key(unit.hex));
+  let ground=hex.level;
+  if(hex.terrain==='water') ground=hex.level-(hex.depth||0);
+  return ground+(unit.prone?1:2);
+}
+function isSubmerged(map,unit){
+  // BMM S. 23: stehend ab Tiefe 2, liegend ab Tiefe 1 = vollständig unter Wasser
+  const hex=map.get(HexGeo.key(unit.hex));
+  if(hex.terrain!=='water') return false;
+  const d=hex.depth||0;
+  return unit.prone ? d>=1 : d>=2;
+}
+function analyzePath(map,path,atk,tgt,rb){
+  const tgtHex=map.get(HexGeo.key(tgt.hex));
+  const attAbs=unitAbsHeight(map,atk);
+  const tgtAbs=unitAbsHeight(map,tgt);
+  const rows=[];
+  let blocked=false, blockReason=null, blockHexKey=null;
+  let woodsPts=0, lightCount=0, heavyCount=0;
+  let partialCover=false, coverHexKey=null;
+  // BMM S. 23: Unter-Wasser-Sonderfälle zuerst
+  if(isSubmerged(map,tgt)){
+    return finishAnalysis({path,rows,blocked:true,
+      blockReason:tgt.prone?'Ziel liegt unter Wasser (liegend ab Tiefe 1 = vollständig getaucht)':'Ziel vollständig unter Wasser (Tiefe 2+)',
+      blockHexKey:HexGeo.key(tgt.hex),woodsPts:0,lightCount:0,heavyCount:0,
+      partialCover:false,coverHexKey:null,targetWoodsMod:0,attAbs,tgtAbs,submerged:true},rb,map,tgt);
+  }
+  if(isSubmerged(map,atk)){
+    return finishAnalysis({path,rows,blocked:true,
+      blockReason:'Angreifer vollständig unter Wasser — Unterwasserkampf (BMM S. 64) ist hier nicht abgebildet',
+      blockHexKey:HexGeo.key(atk.hex),woodsPts:0,lightCount:0,heavyCount:0,
+      partialCover:false,coverHexKey:null,targetWoodsMod:0,attAbs,tgtAbs,submerged:true},rb,map,tgt);
+  }
+  for(const c of path){
+    const key=HexGeo.key(c);
+    if(HexGeo.equals(c,atk.hex)||HexGeo.equals(c,tgt.hex)) continue;
+    const hex=map.get(key);
+    if(!hex) continue;
+    const adjAtk=HexGeo.distance(c,atk.hex)===1;
+    const adjTgt=HexGeo.distance(c,tgt.hex)===1;
+    const E=effElevation(hex);
+    const row={key,coord:c,hex,effEl:E,effects:[]};
+    // BMM S. 23: Terrain interveniert, wenn Level >= beide Mechs,
+    // oder >= Angreifer und angrenzend, oder >= Ziel und angrenzend
+    const hillBlocks=(E>=attAbs&&E>=tgtAbs)||(E>=attAbs&&adjAtk)||(E>=tgtAbs&&adjTgt);
+    if(hillBlocks){
+      blocked=true; blockHexKey=blockHexKey||key;
+      const what=hex.terrain==='building'?'Gebäude':'Geländestufe';
+      let why;
+      if(E>=attAbs&&E>=tgtAbs) why=`Level ${E} ≥ beide Mechs (LoS-Level ${attAbs}/${tgtAbs})`;
+      else if(E>=attAbs&&adjAtk) why=`Level ${E} ≥ Angreifer (LoS-Level ${attAbs}) und direkt angrenzend`;
+      else why=`Level ${E} ≥ Ziel (LoS-Level ${tgtAbs}) und direkt angrenzend`;
+      row.effects.push({type:'block',label:`${what} blockiert: ${why}`,cite:rb.cite.hill});
+      if(!blockReason) blockReason=`${what} (${why})`;
+    }
+    // BMM S. 26: Partial Cover = Hex exakt 1 Level über dem Zielhex, angrenzend,
+    // entlang der LoS; entfällt, wenn der Angreifer höher steht (bergab)
+    if(!hillBlocks&&rb.partialCover&&adjTgt&&!tgt.prone&&tgtHex.terrain!=='water'&&
+       E===tgtHex.level+1&&attAbs<=tgtAbs){
+      partialCover=true; coverHexKey=key;
+      row.effects.push({type:'cover',label:`Partial Cover: Level ${E} = Zielhex +1, angrenzend, Angreifer nicht höher`,cite:rb.cite.partialCover});
+    }
+    const wTop=woodsTop(hex);
+    if(wTop!==null){
+      const interferes=(wTop>=attAbs&&wTop>=tgtAbs)||(wTop>=attAbs&&adjAtk)||(wTop>=tgtAbs&&adjTgt);
+      if(interferes){
+        const pts=rb.woodsPts[hex.terrain];
+        woodsPts+=pts;
+        if(hex.terrain==='lightWoods') lightCount++; else heavyCount++;
+        row.effects.push({type:'woods',label:`${hex.terrain==='lightWoods'?'Light':'Heavy'} Woods: +${pts} Waldpunkt${pts>1?'e':''} (Krone auf Level ${wTop})`,cite:rb.cite.woods});
+      }else{
+        row.effects.push({type:'ignored',label:`Wald wird überblickt (Krone Level ${wTop} unter der Sichtlinie)`,cite:rb.cite.woods});
+      }
+    }
+    if(!row.effects.length) row.effects.push({type:'clear',label:'Kein Einfluss auf die LoS'});
+    rows.push(row);
+  }
+  return finishAnalysis({path,rows,blocked,blockReason,blockHexKey,woodsPts,lightCount,heavyCount,
+    partialCover,coverHexKey,targetWoodsMod:0,attAbs,tgtAbs,submerged:false},rb,map,tgt);
+}
+function finishAnalysis(o,rb,map,tgt){
+  const tgtHex=map.get(HexGeo.key(tgt.hex));
+  // BMM S. 26: Ziel im Wald gibt einen Modifikator — zählt aber NICHT zur
+  // 3-Punkte-Blockade (BMM S. 22: nur Zwischenhexes werden geprüft)
+  let targetWoodsLabel=null;
+  const tgtW=(tgtHex.terrain==='lightWoods'||tgtHex.terrain==='heavyWoods')?tgtHex.terrain:null;
+  if(tgtW){
+    o.targetWoodsMod=rb.targetInWoodsMod[tgtW];
+    targetWoodsLabel=`Ziel steht in ${tgtW==='lightWoods'?'Light':'Heavy'} Woods`;
+    if(rb.countTargetHexWoods) o.woodsPts+=rb.woodsPts[tgtW];
+  }
+  if(!o.blocked&&o.woodsPts>=rb.woodsBlockAt){
+    o.blocked=true;
+    o.blockReason=`Waldpunkte der Zwischenhexes: ${o.woodsPts} ≥ ${rb.woodsBlockAt}`;
+  }
+  // BMM S. 26: Tiefe-1-Wasser gibt Partial Cover — auch gegen höher stehende Angreifer
+  if(!o.blocked&&rb.partialCover&&!tgt.prone&&tgtHex.terrain==='water'&&(tgtHex.depth||0)===1){
+    o.partialCover=true; o.coverHexKey=HexGeo.key(tgt.hex); o.waterCover=true;
+  }
+  const mods=[];
+  if(!o.blocked){
+    if(rb.cumulativeWoodsMod){
+      if(o.lightCount) mods.push({label:`${o.lightCount}× Light Woods dazwischen`,value:o.lightCount*rb.woodsPts.lightWoods});
+      if(o.heavyCount) mods.push({label:`${o.heavyCount}× Heavy Woods dazwischen`,value:o.heavyCount*rb.woodsPts.heavyWoods});
+      if(o.targetWoodsMod) mods.push({label:targetWoodsLabel,value:o.targetWoodsMod});
+    }else{
+      if(o.lightCount||o.heavyCount||o.targetWoodsMod) mods.push({label:'Wald in der Sichtlinie / Ziel im Wald (pauschal)',value:rb.flatWoodsMod});
+    }
+    if(o.partialCover) mods.push({label:o.waterCover?'Partial Cover (Tiefe-1-Wasser)':'Partial Cover',value:rb.partialCoverMod});
+  }
+  o.mods=mods;
+  o.totalMod=mods.reduce((s,m)=>s+m.value,0);
+  return o;
+}
+function defenderScore(a){ return (a.blocked?1000:0)+a.totalMod; }
+function computeLoS(map,atk,tgt,rulebookId){
+  const rb=RULEBOOKS[rulebookId]||RULEBOOKS.bmm;
+  if(HexGeo.equals(atk.hex,tgt.hex)){
+    return {sameHex:true,blocked:false,rows:[],mods:[],totalMod:0,rb};
+  }
+  const p1=HexGeo.line(atk.hex,tgt.hex,+1);
+  const p2=HexGeo.line(atk.hex,tgt.hex,-1);
+  const same=p1.length===p2.length&&p1.every((h,i)=>HexGeo.equals(h,p2[i]));
+  const a1=analyzePath(map,p1,atk,tgt,rb);
+  let result, divided=false, altResult=null;
+  if(same){ result=a1; }
+  else{
+    divided=true;
+    const a2=analyzePath(map,p2,atk,tgt,rb);
+    if(defenderScore(a2)>defenderScore(a1)){ result=a2; altResult=a1; }
+    else{ result=a1; altResult=a2; }
+  }
+  return Object.assign({sameHex:false,divided,altResult,rb,distance:HexGeo.distance(atk.hex,tgt.hex)},result);
+}
+</script>
+<script>
+/* ============================================================
+   Zustand & Karte
+   ============================================================ */
+const COLS=15, ROWS=10;
+const state={
+  map:new Map(), atk:{hex:{q:0,r:2},prone:false}, tgt:{hex:{q:8,r:2},prone:false},
+  rulebook:'bmm', style:'clean', tool:'pan', mode:'sandbox',
+  zoom:1, panX:0, panY:0, hover:null, result:null,
+  shots:[], particles:[], floaters:[], autoFire:false,
+  lesson:null, lessonAnswered:false, lessonsDone:new Set(),
+  gator:{gunnery:4, amove:'walk', thexes:0, tjump:false, tprone:false, timmobile:false, heat:0},
+  photo:{img:null, opacity:0.55, scale:1, x:0, y:0},
+  terrainRev:0,
+  time:0
+};
+/* ---------- Waffen (BMM-Reichweiten) ---------- */
+const WEAPONS={
+  mlaser:{name:'Medium Laser', s:3, m:6, l:9, min:0},
+  laser:{name:'Großlaser', s:5, m:10, l:15, min:0},
+  ppc:{name:'PPC', s:6, m:12, l:18, min:3},
+  ac:{name:'AC/5', s:6, m:12, l:18, min:3},
+  lrm:{name:'LRM-15', s:7, m:14, l:21, min:6}
+};
+/* ---------- GATOR (BMM S. 26–28) ---------- */
+function targetMoveMod(hexes){
+  if(hexes<=2) return 0;
+  if(hexes<=4) return 1;
+  if(hexes<=6) return 2;
+  if(hexes<=9) return 3;
+  if(hexes<=17) return 4;
+  if(hexes<=24) return 5;
+  return 6;
+}
+function gatorCalc(res){
+  if(!res||res.sameHex||res.blocked) return null;
+  const g=state.gator, wpn=WEAPONS[document.getElementById('weapon').value]||WEAPONS.laser;
+  const A={still:0,walk:1,run:2,jump:3}[g.amove];
+  let T, tNotes=[];
+  if(g.timmobile){ T=-4; tNotes.push('unbeweglich −4'); }
+  else{
+    T=targetMoveMod(g.thexes);
+    tNotes.push(`${g.thexes} Hexes bewegt +${targetMoveMod(g.thexes)}`);
+    if(g.tjump){ T+=1; tNotes.push('gesprungen +1'); }
+    if(state.tgt.prone){
+      if(res.distance===1){ T-=2; tNotes.push('liegend & angrenzend −2'); }
+      else{ T+=1; tNotes.push('liegend auf Distanz +1'); }
+    }
+  }
+  const O=res.totalMod+g.heat;
+  const d=res.distance;
+  let R, rBracket, minMod=0;
+  if(d<=wpn.s){ R=0; rBracket='kurz'; }
+  else if(d<=wpn.m){ R=2; rBracket='mittel'; }
+  else if(d<=wpn.l){ R=4; rBracket='lang'; }
+  else return {out:true, wpn, d};
+  if(wpn.min&&d<=wpn.min){ minMod=wpn.min-d+1; }
+  const tn=g.gunnery+A+T+O+R+minMod;
+  const P={2:100,3:97.2,4:91.7,5:83.3,6:72.2,7:58.3,8:41.7,9:27.8,10:16.7,11:8.3,12:2.8};
+  const prob=tn<=2?100:(tn>12?0:P[tn]);
+  return {g:g.gunnery,A,T,tNotes,O,R,minMod,tn,prob,rBracket,wpn,d,heat:g.heat,terrain:res.totalMod};
+}
+function hx(q,r){ return state.map.get(q+','+r); }
+function setHex(q,r,v){ state.map.set(q+','+r,Object.assign({level:0,terrain:'clear'},v)); state.terrainRev++; }
+function hexLabel(h){ return String(h.q+1).padStart(2,'0')+String(h.r+1).padStart(2,'0'); }
+function seedRand(q,r,n){ let x=Math.sin(q*127.1+r*311.7+n*74.7)*43758.5453; return x-Math.floor(x); }
+
+function defaultMap(){
+  state.map.clear();
+  for(let q=0;q<COLS;q++) for(let r=0;r<ROWS;r++) setHex(q,r,{});
+  const hills=[[6,3,1],[7,3,2],[7,4,2],[8,4,1],[6,4,1],[8,3,1],[7,2,1],[12,7,1],[13,7,1],[12,8,1],[3,1,1],[4,1,1]];
+  hills.forEach(([q,r,l])=>{ if(hx(q,r)) hx(q,r).level=l; });
+  const lw=[[4,4],[4,5],[5,6],[10,2],[11,2],[9,6],[10,6],[2,7],[3,7]];
+  lw.forEach(([q,r])=>{ if(hx(q,r)) hx(q,r).terrain='lightWoods'; });
+  const hw=[[5,5],[10,5],[11,5],[2,8],[13,2]];
+  hw.forEach(([q,r])=>{ if(hx(q,r)) hx(q,r).terrain='heavyWoods'; });
+  const wa=[[0,4],[0,5],[1,4],[1,5],[1,6],[0,6]];
+  wa.forEach(([q,r])=>{ if(hx(q,r)){ hx(q,r).terrain='water'; hx(q,r).depth=1; } });
+  if(hx(1,5)) hx(1,5).depth=2;
+  const bl=[[9,8,2],[10,8,3],[13,4,1]];
+  bl.forEach(([q,r,h])=>{ if(hx(q,r)){ hx(q,r).terrain='building'; hx(q,r).bldgHeight=h; } });
+  const rg=[[6,7],[7,7],[12,1]];
+  rg.forEach(([q,r])=>{ if(hx(q,r)) hx(q,r).terrain='rough'; });
+}
+function randomMap(){
+  state.map.clear();
+  for(let q=0;q<COLS;q++) for(let r=0;r<ROWS;r++){
+    const n=Math.random();
+    let cell={};
+    if(n<0.09) cell={level:1};
+    else if(n<0.13) cell={level:2};
+    else if(n<0.15) cell={level:Math.random()<0.5?3:2};
+    else if(n<0.27) cell={terrain:'lightWoods'};
+    else if(n<0.33) cell={terrain:'heavyWoods'};
+    else if(n<0.36) cell={terrain:'rough'};
+    setHex(q,r,cell);
+  }
+  for(let i=0;i<2;i++){
+    const cq=2+Math.floor(Math.random()*(COLS-4)), cr=2+Math.floor(Math.random()*(ROWS-4));
+    [[0,0],[1,0],[0,1],[1,1],[-1,0],[0,-1]].forEach(([dq,dr])=>{
+      const c=hx(cq+dq,cr+dr); if(c&&Math.random()<0.8){ c.terrain='water'; c.depth=Math.random()<0.25?2:1; c.level=0; }
+    });
+  }
+  const c=hx(state.atk.hex.q,state.atk.hex.r); if(c){c.terrain='clear';c.level=Math.min(c.level,1);}
+  const d=hx(state.tgt.hex.q,state.tgt.hex.r); if(d){d.terrain='clear';d.level=Math.min(d.level,1);}
+}
+
+/* ============================================================
+   Projektion & Picking
+   ============================================================ */
+const cv=document.getElementById('map'), ctx=cv.getContext('2d');
+let S=46;
+const SQ=0.56, LH0=0.42;
+function LH(){ return S*LH0; }
+function baseCenter(q,r){
+  return { x:q*S*1.5, y:(r+q/2)*Math.sqrt(3)*S*SQ };
+}
+function proj(q,r,lvl){
+  const c=baseCenter(q,r);
+  return { x:state.panX+c.x*state.zoom, y:state.panY+(c.y-(lvl||0)*LH()/state.zoom*state.zoom)*state.zoom };
+}
+function pt(q,r,lvl){
+  const c=baseCenter(q,r);
+  return { x:state.panX+(c.x)*state.zoom, y:state.panY+(c.y - (lvl||0)*LH())*state.zoom };
+}
+function hexCorners(cx,cy,scale){
+  const pts=[];
+  for(let i=0;i<6;i++){
+    const a=Math.PI/180*(60*i);
+    pts.push([cx+S*scale*Math.cos(a), cy+S*scale*Math.sin(a)*SQ]);
+  }
+  return pts;
+}
+function centerMap(){
+  const w=cv.width/devicePixelRatio, h=cv.height/devicePixelRatio;
+  const c1=baseCenter(0,0), c2=baseCenter(COLS-1,ROWS-1);
+  const mw=(c2.x-c1.x), mh=(c2.y-c1.y);
+  state.zoom=Math.min((w-140)/(mw+2*S),(h-160)/(mh+2*S));
+  state.zoom=Math.max(0.5,Math.min(1.6,state.zoom));
+  state.panX=(w-mw*state.zoom)/2;
+  state.panY=(h-mh*state.zoom)/2+10;
+}
+function pickHex(mx,my){
+  const cells=allCellsSorted().reverse();
+  for(const c of cells){
+    const p=pt(c.q,c.r,c.hex.level+(c.hex.terrain==='building'?c.hex.bldgHeight||1:0));
+    const pts=hexCorners(p.x,p.y,state.zoom);
+    if(pointInPoly(mx,my,pts)) return {q:c.q,r:c.r};
+    const p2=pt(c.q,c.r,c.hex.level);
+    const pts2=hexCorners(p2.x,p2.y,state.zoom);
+    if(pointInPoly(mx,my,pts2)) return {q:c.q,r:c.r};
+  }
+  return null;
+}
+function pointInPoly(x,y,pts){
+  let inside=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    if(((pts[i][1]>y)!==(pts[j][1]>y))&&
+       (x<(pts[j][0]-pts[i][0])*(y-pts[i][1])/(pts[j][1]-pts[i][1])+pts[i][0])) inside=!inside;
+  }
+  return inside;
+}
+function allCellsSorted(){
+  const arr=[];
+  for(let q=0;q<COLS;q++) for(let r=0;r<ROWS;r++) arr.push({q,r,hex:hx(q,r)});
+  arr.sort((a,b)=>baseCenter(a.q,a.r).y-baseCenter(b.q,b.r).y);
+  return arr;
+}
+
+/* ============================================================
+   Farbwelten
+   ============================================================ */
+const PAL={
+  clean:{
+    sky:['#0a0d12','#0a0d12'],
+    clear:['#8f9e63','#6f7d4a','#59653c'], rough:['#96907f','#787362','#615c4e'],
+    lightWoods:['#5f8f55','#48713f','#3a5c33'], heavyWoods:['#3f7042','#315733','#274528'],
+    water:['#4a7fa8','#3a6588','#2f5270'], building:['#8e94a3','#6f7583','#585d69'],
+    hillTop:['#9aa0a8','#7d838c','#666b73'],
+    stroke:'rgba(10,12,16,0.35)', grid:true
+  },
+  dio:{
+    sky:['#3a5570','#141b26'],
+    clear:['#b8c47e','#8f9c5c','#6a7546'], rough:['#b3a893','#8c8370','#6a6355'],
+    lightWoods:['#79a765','#5c854c','#44653a'], heavyWoods:['#4f8352','#3c663f','#2c4d30'],
+    water:['#67a3cf','#4d84a9','#3b6a89'], building:['#a5abb8','#828896','#666b78'],
+    hillTop:['#c2baa6','#9c9481','#787163'],
+    stroke:'rgba(20,16,10,0.18)', grid:false
+  }
+};
+function shade(hex,f){
+  const n=parseInt(hex.slice(1),16);
+  let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=Math.round(Math.min(255,r*f)); g=Math.round(Math.min(255,g*f)); b=Math.round(Math.min(255,b*f));
+  return `rgb(${r},${g},${b})`;
+}
+function terrCols(hex,P){
+  if(hex.terrain==='water') return P.water;
+  if(hex.terrain==='building') return P.building;
+  if(hex.terrain==='lightWoods') return P.lightWoods;
+  if(hex.terrain==='heavyWoods') return P.heavyWoods;
+  if(hex.terrain==='rough') return P.rough;
+  return hex.level>=2 ? P.hillTop : P.clear;
+}
+
+/* ============================================================
+   Zeichnen
+   ============================================================ */
+function polyPath(pts){ ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]); ctx.closePath(); }
+
+function drawScene(){
+  const w=cv.width/devicePixelRatio, h=cv.height/devicePixelRatio;
+  const P=PAL[state.style], dio=state.style==='dio';
+  ctx.save();
+  ctx.clearRect(0,0,w,h);
+  const g=ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,P.sky[0]); g.addColorStop(1,P.sky[1]);
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  if(dio){
+    ctx.fillStyle='rgba(255,255,255,0.05)';
+    for(const p of state.particles){ ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,7); ctx.fill(); }
+  }
+  const losKeys=lossKeySet();
+  const cells=allCellsSorted();
+  const z=state.zoom, lh=LH()*z;
+  const baseDepth=dio? lh*3.2 : lh*0.9;
+
+  for(const c of cells){
+    const hex=c.hex, lvl=hex.level;
+    const p=pt(c.q,c.r,lvl);
+    const cols=terrCols(hex,P);
+    const top=hexCorners(p.x,p.y,z);
+    const depth=lvl*lh+baseDepth;
+    for(let i=0;i<3;i++){
+      const a=top[i], b=top[i+1];
+      polyPath([a,b,[b[0],b[1]+depth],[a[0],a[1]+depth]]);
+      if(dio){
+        const gg=ctx.createLinearGradient(0,a[1],0,a[1]+depth);
+        const sideBase=i===1?cols[2]:cols[1];
+        gg.addColorStop(0,shade(sideBase.startsWith('#')?sideBase:cols[1],1));
+        gg.addColorStop(0.25,'#6b5b45'); gg.addColorStop(0.7,'#4a4034'); gg.addColorStop(1,'#33302c');
+        ctx.fillStyle=gg;
+      }else{
+        ctx.fillStyle=i===1?cols[2]:cols[1];
+      }
+      ctx.fill();
+    }
+    polyPath(top);
+    if(dio){
+      const tg=ctx.createLinearGradient(top[3][0],top[3][1],top[0][0],top[0][1]);
+      tg.addColorStop(0,shade(cols[0],1.10)); tg.addColorStop(1,shade(cols[0],0.86));
+      ctx.fillStyle=tg;
+    }else ctx.fillStyle=cols[0];
+    ctx.fill();
+    if(P.grid){ ctx.strokeStyle=P.stroke; ctx.lineWidth=1; ctx.stroke(); }
+    else { ctx.strokeStyle=P.stroke; ctx.lineWidth=0.7; ctx.stroke(); }
+
+    if(dio) drawReliefs(c,p,top,hex);
+    if(hex.terrain==='water') drawWater(p,z,hex,dio);
+    if(dio&&hex.terrain==='clear'&&lvl<2) speckle(c,p,z,'rgba(70,88,40,0.5)',5);
+    if(dio&&(hex.terrain==='rough')) speckle(c,p,z,'rgba(60,54,44,0.85)',8);
+    if(!dio&&hex.terrain==='rough') speckle(c,p,z,'rgba(60,54,44,0.6)',6);
+
+    const inLos=losKeys.get(c.q+','+c.r);
+    if(inLos){ drawLosTile(top,inLos); }
+    if(state.hover&&state.hover.q===c.q&&state.hover.r===c.r){
+      polyPath(top); ctx.strokeStyle='rgba(245,192,105,0.95)'; ctx.lineWidth=2; ctx.stroke();
+    }
+    if(hex.terrain==='lightWoods') drawTrees(c,p,z,2+(dio?1:0),hex,dio,false);
+    if(hex.terrain==='heavyWoods') drawTrees(c,p,z,4+(dio?2:0),hex,dio,true);
+    if(hex.terrain==='building') drawBuilding(c,p,z,hex,dio);
+    if(hex.level>0){
+      ctx.fillStyle=dio?'rgba(255,255,255,0.42)':'rgba(0,0,0,0.45)';
+      ctx.font=`600 ${Math.max(9,10*z)}px Inter,system-ui`;
+      ctx.textAlign='center';
+      ctx.fillText('L'+hex.level,p.x,p.y+3.5*z);
+    }
+  }
+  drawPhoto();
+  drawUnit(state.atk,'#d6533a','A');
+  drawUnit(state.tgt,'#4f93d8','B');
+  drawLosLine();
+  drawShots();
+  drawFloaters();
+  if(dio){
+    const vg=ctx.createRadialGradient(w/2,h*0.45,Math.min(w,h)*0.35,w/2,h*0.5,Math.max(w,h)*0.78);
+    vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(4,7,11,0.55)');
+    ctx.fillStyle=vg; ctx.fillRect(0,0,w,h);
+  }
+  ctx.restore();
+}
+function speckle(c,p,z,col,n){
+  ctx.fillStyle=col;
+  for(let i=0;i<n;i++){
+    const a=seedRand(c.q,c.r,i)*6.28, rr=seedRand(c.q,c.r,i+9)*S*0.55*z;
+    ctx.beginPath();
+    ctx.arc(p.x+Math.cos(a)*rr, p.y+Math.sin(a)*rr*SQ, (0.9+seedRand(c.q,c.r,i+20)*1.6)*z,0,7);
+    ctx.fill();
+  }
+}
+const NB=[[1,0],[0,1],[-1,1],[-1,0],[0,-1],[1,-1]];
+function drawReliefs(c,p,top,hex){
+  for(let i=0;i<6;i++){
+    const nb=hx(c.q+NB[i][0],c.r+NB[i][1]);
+    const a=top[i], b=top[(i+1)%6];
+    if(nb&&nb.level>hex.level){
+      const ia=[a[0]+(p.x-a[0])*0.30,a[1]+(p.y-a[1])*0.30];
+      const ib=[b[0]+(p.x-b[0])*0.30,b[1]+(p.y-b[1])*0.30];
+      polyPath([a,b,ib,ia]); ctx.fillStyle='rgba(10,14,8,0.18)'; ctx.fill();
+    }
+    if((i===3||i===4)&&hex.level>0&&(!nb||nb.level<hex.level)){
+      ctx.strokeStyle='rgba(255,240,200,0.30)'; ctx.lineWidth=1.3;
+      ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+    }
+  }
+}
+function drawPhoto(){
+  const ph=state.photo;
+  if(!ph.img) return;
+  const z=state.zoom;
+  const mapW=((COLS-1)*1.5+2)*S;
+  const w2=mapW*ph.scale;
+  const h2=w2*(ph.img.height/ph.img.width)*SQ;
+  ctx.save();
+  ctx.globalAlpha=ph.opacity;
+  ctx.drawImage(ph.img, state.panX+(-S+ph.x)*z, state.panY+(-S+ph.y)*z, w2*z, h2*z);
+  ctx.restore();
+}
+function drawWater(p,z,hex,dio){
+  const t=state.time;
+  ctx.strokeStyle=dio?'rgba(255,255,255,0.35)':'rgba(255,255,255,0.22)';
+  ctx.lineWidth=1.1*z;
+  for(let i=0;i<(dio?3:2);i++){
+    const ph=t*0.0011+i*2.2, ox=Math.sin(ph)*4*z;
+    ctx.beginPath();
+    ctx.arc(p.x+ox+(i-1)*9*z, p.y+(i-0.5)*5*z, 6.5*z, Math.PI*0.15, Math.PI*0.85);
+    ctx.stroke();
+  }
+  if(dio&&Math.random()<0.3){
+    ctx.fillStyle='rgba(255,255,255,0.45)';
+    ctx.fillRect(p.x+(Math.random()-0.5)*14*z,p.y+(Math.random()-0.5)*7*z,1.4*z,1.1*z);
+  }
+  if((hex.depth||0)>=2){
+    ctx.fillStyle='rgba(10,25,40,0.35)';
+    polyPath(hexCorners(p.x,p.y,z*0.98)); ctx.fill();
+  }
+}
+function drawTrees(c,p,z,n,hex,dio,heavy){
+  for(let i=0;i<n;i++){
+    const a=seedRand(c.q,c.r,i)*6.28, rr=seedRand(c.q,c.r,i+7)*S*0.5*z;
+    const tx=p.x+Math.cos(a)*rr, ty=p.y+Math.sin(a)*rr*SQ;
+    const hgt=(heavy?15:11)*z*(0.8+seedRand(c.q,c.r,i+3)*0.5)*(dio?1.25:1);
+    const sway=dio?Math.sin(state.time*0.0012+i*1.7+c.q)*1.2*z:0;
+    if(dio){
+      ctx.fillStyle='rgba(0,0,0,0.28)';
+      ctx.beginPath(); ctx.ellipse(tx,ty+1.5*z,hgt*0.34,hgt*0.13,0,0,7); ctx.fill();
+    }
+    ctx.fillStyle='#4a3826';
+    ctx.fillRect(tx-1*z,ty-2.5*z,2*z,3.5*z);
+    const dark=heavy?'#1f3d26':'#2c5236', lite=heavy?'#2e5434':'#3f6f47';
+    for(let l=0;l<(dio?3:2);l++){
+      const wRad=hgt*0.42*(1-l*0.24), yy=ty-hgt*(0.28+l*0.30);
+      ctx.fillStyle=l===0?dark:lite;
+      ctx.beginPath();
+      ctx.moveTo(tx+sway*l*0.5,yy-hgt*0.36);
+      ctx.lineTo(tx-wRad,yy); ctx.lineTo(tx+wRad,yy);
+      ctx.closePath(); ctx.fill();
+    }
+    if(dio){
+      ctx.fillStyle='rgba(245,220,150,0.16)';
+      ctx.beginPath();
+      ctx.moveTo(tx+sway*0.5,ty-hgt*0.94);
+      ctx.lineTo(tx+hgt*0.15,ty-hgt*0.55); ctx.lineTo(tx+hgt*0.3,ty-hgt*0.58);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+}
+function drawBuilding(c,p,z,hex,dio){
+  const hgt=(hex.bldgHeight||1)*LH()*z;
+  const wpts=hexCorners(p.x,p.y-hgt/z*z,z*0.72).map(q=>[q[0],q[1]]);
+  const bpts=hexCorners(p.x,p.y,z*0.72);
+  for(let i=0;i<3;i++){
+    polyPath([wpts[i],wpts[i+1],bpts[i+1],bpts[i]]);
+    ctx.fillStyle=i===1?'#565b66':'#6a7080';
+    ctx.fill();
+  }
+  polyPath(wpts);
+  ctx.fillStyle=dio?'#9ba1ae':'#8e94a3'; ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=0.8; ctx.stroke();
+  const fl=hex.bldgHeight||1;
+  for(let f=0;f<fl;f++) for(let wdx=0;wdx<3;wdx++){
+    const wx=p.x-10*z+wdx*8*z, wy=p.y-6*z-f*LH()*z+ (f===0?0:0);
+    const lit=dio&&seedRand(c.q,c.r,f*3+wdx)<0.45;
+    ctx.fillStyle=lit?'rgba(245,200,110,0.9)':'rgba(25,30,40,0.75)';
+    ctx.fillRect(wx,wy-hgt+LH()*z*0.5,3.4*z,4.2*z);
+  }
+}
+function unitAnchor(u){
+  const hex=hx(u.hex.q,u.hex.r);
+  let ground=hex.level;
+  if(hex.terrain==='water') ground=hex.level-(hex.depth||0);
+  const p=pt(u.hex.q,u.hex.r,hex.terrain==='water'?hex.level:ground);
+  const submerged=hex.terrain==='water'&&(hex.depth||0)>=1;
+  return {p,ground,submerged,hex};
+}
+function drawUnit(u,color,tag){
+  const z=state.zoom, {p,submerged}=unitAnchor(u);
+  const dio=state.style==='dio';
+  const sc=(dio?1.18:1)*z;
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(p.x,p.y+2*z,15*sc,5.5*sc,0,0,7);
+  ctx.fillStyle='rgba(0,0,0,0.38)'; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(p.x,p.y+1*z,13*sc,5*sc,0,0,7);
+  ctx.fillStyle=color+'33'; ctx.strokeStyle=color; ctx.lineWidth=1.6*z; ctx.fill(); ctx.stroke();
+  const bh=u.prone?10*sc:26*sc;
+  if(u.prone){
+    ctx.fillStyle=shade(color,0.9);
+    rr(p.x-11*sc,p.y-6*sc,22*sc,6*sc,2*sc); ctx.fill();
+    ctx.fillStyle=shade(color,1.15);
+    rr(p.x+5*sc,p.y-9*sc,7*sc,5*sc,2*sc); ctx.fill();
+  }else{
+    const opa=submerged?0.55:1;
+    ctx.globalAlpha=opa;
+    ctx.fillStyle=shade(color,0.8);
+    rr(p.x-5.5*sc,p.y-12*sc,4.4*sc,12*sc,1.8*sc); ctx.fill();
+    rr(p.x+1.1*sc,p.y-12*sc,4.4*sc,12*sc,1.8*sc); ctx.fill();
+    ctx.fillStyle=color;
+    rr(p.x-8*sc,p.y-22*sc,16*sc,11*sc,3*sc); ctx.fill();
+    ctx.fillStyle=shade(color,0.85);
+    rr(p.x-12.5*sc,p.y-20.5*sc,4.5*sc,8*sc,1.8*sc); ctx.fill();
+    rr(p.x+8*sc,p.y-20.5*sc,4.5*sc,8*sc,1.8*sc); ctx.fill();
+    ctx.fillStyle=shade(color,1.12);
+    rr(p.x-3.5*sc,p.y-27.5*sc,7*sc,6*sc,2*sc); ctx.fill();
+    ctx.fillStyle=dio?'#ffe9b0':'#dff0ff';
+    ctx.fillRect(p.x-2.2*sc,p.y-26*sc,4.4*sc,1.8*sc);
+    if(dio){
+      ctx.strokeStyle='rgba(255,235,190,0.5)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(p.x-8*sc,p.y-22*sc); ctx.lineTo(p.x+8*sc,p.y-22*sc); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+    if(submerged){
+      ctx.strokeStyle='rgba(200,230,255,0.5)'; ctx.lineWidth=1.2*z;
+      ctx.beginPath(); ctx.arc(p.x,p.y-3*sc,10*sc,Math.PI*0.1,Math.PI*0.9,true); ctx.stroke();
+    }
+  }
+  ctx.fillStyle='#0b0e13'; ctx.font=`700 ${9.5*z}px Inter,system-ui`; ctx.textAlign='center';
+  ctx.beginPath(); ctx.arc(p.x,p.y-bh-8*z,7.5*z,0,7);
+  ctx.fillStyle=color; ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.fillText(tag,p.x,p.y-bh-4.8*z);
+  ctx.restore();
+}
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.roundRect(x,y,w,h,r); }
+function eyePoint(u){
+  const {p}=unitAnchor(u);
+  const z=state.zoom, dio=state.style==='dio', sc=(dio?1.18:1)*z;
+  return {x:p.x, y:p.y-(u.prone?7*sc:24*sc)};
+}
+function lossKeySet(){
+  const m=new Map();
+  if(!state.result||state.result.sameHex) return m;
+  for(const row of state.result.rows){
+    let cls='clear';
+    for(const e of row.effects){
+      if(e.type==='block'){cls='block';break;}
+      if(e.type==='woods') cls='woods';
+      if(e.type==='cover'&&cls==='clear') cls='cover';
+    }
+    m.set(row.key,cls);
+  }
+  return m;
+}
+function drawLosTile(top,cls){
+  polyPath(top);
+  const col=cls==='block'?'rgba(214,83,58,0.30)':cls==='woods'?'rgba(232,163,61,0.22)':cls==='cover'?'rgba(79,147,216,0.25)':'rgba(255,255,255,0.07)';
+  ctx.fillStyle=col; ctx.fill();
+}
+function drawLosLine(){
+  const res=state.result;
+  if(!res||res.sameHex) return;
+  const A=eyePoint(state.atk), B=eyePoint(state.tgt);
+  const z=state.zoom;
+  ctx.save();
+  ctx.setLineDash([9*z,6*z]);
+  ctx.lineWidth=2.4*z;
+  ctx.lineCap='round';
+  if(res.blocked){
+    let cut=0.55;
+    if(res.blockHexKey){
+      const [q,r]=res.blockHexKey.split(',').map(Number);
+      const bp=pt(q,r,hx(q,r).level);
+      const dx=B.x-A.x, dy=B.y-A.y, len2=dx*dx+dy*dy;
+      cut=Math.max(0.08,Math.min(0.95,((bp.x-A.x)*dx+(bp.y-A.y)*dy)/len2));
+    }
+    const mx=A.x+(B.x-A.x)*cut, my=A.y+(B.y-A.y)*cut;
+    ctx.strokeStyle='#e8a33d';
+    ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(mx,my); ctx.stroke();
+    ctx.strokeStyle='rgba(214,83,58,0.75)';
+    ctx.beginPath(); ctx.moveTo(mx,my); ctx.lineTo(B.x,B.y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle='#ef7862'; ctx.lineWidth=3*z;
+    ctx.beginPath();
+    ctx.moveTo(mx-7*z,my-7*z); ctx.lineTo(mx+7*z,my+7*z);
+    ctx.moveTo(mx+7*z,my-7*z); ctx.lineTo(mx-7*z,my+7*z);
+    ctx.stroke();
+  }else{
+    ctx.strokeStyle=res.totalMod>0?'#e8a33d':'#5cb371';
+    ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  for(const row of state.result.rows){
+    let badge=null;
+    for(const e of row.effects){
+      if(e.type==='woods') badge={t:'+'+(state.result.rb.woodsPts[row.hex.terrain]),c:'#e8a33d'};
+      if(e.type==='cover'&&!badge) badge={t:'C',c:'#4f93d8'};
+      if(e.type==='block'){ badge=null; break; }
+    }
+    if(badge){
+      const bp=pt(row.coord.q,row.coord.r,row.hex.level);
+      const wt=woodsTop(row.hex);
+      const by=bp.y-((wt!==null?2:0)+0.4)*LH()*z-10*z;
+      ctx.beginPath(); ctx.arc(bp.x,by,8.5*z,0,7);
+      ctx.fillStyle=badge.c; ctx.fill();
+      ctx.fillStyle='#14100a'; ctx.font=`700 ${9*z}px Inter,system-ui`; ctx.textAlign='center';
+      ctx.fillText(badge.t,bp.x,by+3.2*z);
+    }
+  }
+  ctx.restore();
+}
+
+/* ============================================================
+   Gefechtssimulation
+   ============================================================ */
+function fire(){
+  const res=state.result;
+  if(!res||res.sameHex) return;
+  if(state.style==='gl'&&typeof GL!=='undefined'&&GL.ready){ glFire(res); return; }
+  const wpn=document.getElementById('weapon').value;
+  const A=eyePoint(state.atk);
+  let end, hit;
+  if(res.blocked&&res.blockHexKey){
+    const [q,r]=res.blockHexKey.split(',').map(Number);
+    const cell=hx(q,r);
+    const wt=woodsTop(cell);
+    end=pt(q,r,effElevation(cell)+(wt!==null?1.2:0.3));
+    hit=false;
+  }else if(res.blocked){
+    const B=eyePoint(state.tgt);
+    end={x:(A.x+B.x)/2,y:(A.y+B.y)/2}; hit=false;
+  }else{
+    end=eyePoint(state.tgt); hit=true;
+  }
+  state.shots.push({wpn,ax:A.x,ay:A.y,bx:end.x,by:end.y,t:0,hit,
+    dur:wpn==='lrm'?1050:wpn==='ac'?700:520,
+    missiles:wpn==='lrm'?[...Array(6)].map((_,i)=>({d:i*90,off:(Math.random()-0.5)*26})):null});
+  if(!hit) addFloater(end.x,end.y-24,'Blockiert!','#ef7862');
+  else{
+    const gc=gatorCalc(res);
+    let label=res.totalMod>0?`Treffer möglich · +${res.totalMod}`:'Freie Schussbahn';
+    if(gc&&!gc.out) label=`TN ${gc.tn} · ${gc.prob.toFixed(0)} %`;
+    else if(gc&&gc.out) label='Außer Reichweite!';
+    addFloater(end.x,end.y-34,label,res.totalMod>0?'#f5c069':'#8fd6a0');
+  }
+}
+function addFloater(x,y,txt,col){ state.floaters.push({x,y,txt,col,t:0}); }
+function drawShots(){
+  const dt=16;
+  for(const s of state.shots){
+    s.t+=dt;
+    const k=Math.min(1,s.t/s.dur);
+    const z=state.zoom;
+    ctx.save();
+    if(s.wpn==='laser'||s.wpn==='mlaser'){
+      const alpha=k<0.15?k/0.15:1-(k-0.15)/0.85;
+      ctx.strokeStyle=`rgba(255,60,40,${Math.max(0,alpha)})`;
+      ctx.lineWidth=2.6*z; ctx.shadowColor='#ff5040'; ctx.shadowBlur=14;
+      ctx.beginPath(); ctx.moveTo(s.ax,s.ay); ctx.lineTo(s.bx,s.by); ctx.stroke();
+      ctx.lineWidth=1*z; ctx.strokeStyle=`rgba(255,220,200,${Math.max(0,alpha)})`;
+      ctx.beginPath(); ctx.moveTo(s.ax,s.ay); ctx.lineTo(s.bx,s.by); ctx.stroke();
+    }
+    if(s.wpn==='ppc'){
+      const alpha=1-k;
+      ctx.strokeStyle=`rgba(110,180,255,${alpha})`;
+      ctx.lineWidth=2.4*z; ctx.shadowColor='#5da0ff'; ctx.shadowBlur=16;
+      ctx.beginPath(); ctx.moveTo(s.ax,s.ay);
+      const segs=9;
+      for(let i=1;i<=segs;i++){
+        const tt=i/segs;
+        const jx=(Math.random()-0.5)*14*(i<segs?1:0);
+        const jy=(Math.random()-0.5)*10*(i<segs?1:0);
+        ctx.lineTo(s.ax+(s.bx-s.ax)*tt+jx, s.ay+(s.by-s.ay)*tt+jy);
+      }
+      ctx.stroke();
+    }
+    if(s.wpn==='ac'){
+      for(let i=0;i<4;i++){
+        const tt=k*1.35-i*0.11;
+        if(tt<0||tt>1) continue;
+        const x=s.ax+(s.bx-s.ax)*tt, y=s.ay+(s.by-s.ay)*tt;
+        ctx.fillStyle='#ffd27a'; ctx.shadowColor='#ffb840'; ctx.shadowBlur=8;
+        ctx.beginPath(); ctx.arc(x,y,2.4*z,0,7); ctx.fill();
+      }
+    }
+    if(s.wpn==='lrm'){
+      for(const m of s.missiles){
+        const tt=Math.max(0,Math.min(1,(s.t-m.d)/(s.dur-350)));
+        if(tt<=0||tt>=1) continue;
+        const x=s.ax+(s.bx-s.ax)*tt+m.off*Math.sin(tt*Math.PI);
+        const arc=-Math.sin(tt*Math.PI)*60*state.zoom;
+        const y=s.ay+(s.by-s.ay)*tt+arc;
+        ctx.fillStyle='#ffe9c0'; ctx.shadowColor='#ffcf80'; ctx.shadowBlur=6;
+        ctx.beginPath(); ctx.arc(x,y,1.9*state.zoom,0,7); ctx.fill();
+        ctx.fillStyle='rgba(200,200,200,0.25)';
+        ctx.beginPath(); ctx.arc(x-(s.bx-s.ax)*0.02,y+2,1.5,0,7); ctx.fill();
+      }
+    }
+    if(k>0.82){
+      const ik=(k-0.82)/0.18;
+      const rad=(6+ik*22)*z;
+      ctx.globalAlpha=1-ik;
+      ctx.strokeStyle=s.hit?'#ffd27a':'#8a8478';
+      ctx.lineWidth=2.5*z;
+      ctx.beginPath(); ctx.arc(s.bx,s.by,rad,0,7); ctx.stroke();
+      ctx.fillStyle=s.hit?'rgba(255,190,90,0.55)':'rgba(150,140,120,0.5)';
+      ctx.beginPath(); ctx.arc(s.bx,s.by,rad*0.45,0,7); ctx.fill();
+      ctx.globalAlpha=1;
+    }
+    ctx.restore();
+  }
+  state.shots=state.shots.filter(s=>s.t<s.dur);
+}
+function drawFloaters(){
+  for(const f of state.floaters){
+    f.t+=16;
+    const k=f.t/1400;
+    ctx.save();
+    ctx.globalAlpha=Math.max(0,1-k);
+    ctx.font=`600 ${13*state.zoom}px Inter,system-ui`;
+    ctx.textAlign='center';
+    ctx.fillStyle='#0009';
+    ctx.fillText(f.txt,f.x+1,f.y-k*30+1);
+    ctx.fillStyle=f.col;
+    ctx.fillText(f.txt,f.x,f.y-k*30);
+    ctx.restore();
+  }
+  state.floaters=state.floaters.filter(f=>f.t<1400);
+}
+
+/* ============================================================
+   Höhenprofil
+   ============================================================ */
+const pcv=document.getElementById('profile'), pctx=pcv.getContext('2d');
+function drawProfile(){
+  const res=state.result;
+  const W=pcv.width, H=pcv.height;
+  pctx.clearRect(0,0,W,H);
+  if(!res||res.sameHex) return;
+  const path=res.path;
+  const n=path.length;
+  const levels=path.map(c=>{
+    const h=state.map.get(HexGeo.key(c))||{level:0,terrain:'clear'};
+    return h;
+  });
+  const maxL=Math.max(3,...levels.map(h=>effElevation(h)+(woodsTop(h)!==null?2:0)))+1.4;
+  const bw=W/n, base=H-16, LHp=(H-34)/maxL;
+  pctx.font='600 10px Inter,system-ui'; pctx.textAlign='center';
+  for(let i=0;i<n;i++){
+    const h=levels[i], x=i*bw;
+    let col='#6f7d4a';
+    if(h.terrain==='water') col='#3a6588';
+    if(h.terrain==='rough') col='#787362';
+    if(h.terrain==='building') col='#6f7583';
+    if(h.level>=2) col='#7d838c';
+    const isBlockHex=res.blockHexKey===HexGeo.key(path[i]);
+    const eff=effElevation(h);
+    pctx.fillStyle=isBlockHex?'#a54534':col;
+    pctx.fillRect(x+1,base-eff*LHp,bw-2,eff*LHp+10);
+    pctx.fillStyle='rgba(0,0,0,0.25)';
+    pctx.fillRect(x+1,base+4,bw-2,6);
+    const wt=woodsTop(h);
+    if(wt!==null){
+      pctx.fillStyle=h.terrain==='lightWoods'?'rgba(95,143,85,0.55)':'rgba(63,112,66,0.7)';
+      pctx.fillRect(x+2,base-wt*LHp,bw-4,2*LHp);
+    }
+    pctx.fillStyle='#5f6b78';
+    pctx.fillText(hexLabel(path[i]),x+bw/2,H-2);
+  }
+  function eyeY(u,abs){ return base-abs*LHp-6; }
+  const ax=bw*0.5, bx=W-bw*0.5;
+  const ay=base-res.attAbs*LHp-6, by=base-res.tgtAbs*LHp-6;
+  pctx.setLineDash([6,4]);
+  pctx.strokeStyle=res.blocked?'#d6533a':(res.totalMod>0?'#e8a33d':'#5cb371');
+  pctx.lineWidth=2;
+  pctx.beginPath(); pctx.moveTo(ax,ay); pctx.lineTo(bx,by); pctx.stroke();
+  pctx.setLineDash([]);
+  function fig(x,y,col){
+    pctx.fillStyle=col;
+    pctx.fillRect(x-4,y-12,8,12);
+    pctx.beginPath(); pctx.arc(x,y-15,3.5,0,7); pctx.fill();
+  }
+  fig(ax,ay+6,'#d6533a'); fig(bx,by+6,'#4f93d8');
+  if(res.blocked&&res.blockHexKey){
+    const bi=path.findIndex(c=>HexGeo.key(c)===res.blockHexKey);
+    if(bi>=0){
+      const x=bi*bw+bw/2;
+      pctx.strokeStyle='#ef7862'; pctx.lineWidth=2.4;
+      pctx.beginPath();
+      pctx.moveTo(x-6,ay+(by-ay)*(bi/(n-1))-6); pctx.lineTo(x+6,ay+(by-ay)*(bi/(n-1))+6);
+      pctx.moveTo(x+6,ay+(by-ay)*(bi/(n-1))-6); pctx.lineTo(x-6,ay+(by-ay)*(bi/(n-1))+6);
+      pctx.stroke();
+    }
+  }
+}
+
+/* ============================================================
+   Werkzeuge
+   ============================================================ */
+const IC={
+  pan:'<path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>',
+  mechA:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>',
+  mechB:'<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="12" cy="12" r="3.4" fill="currentColor"/>',
+  up:'<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+  down:'<path d="M3 7l6 6 4-4 8 8"/><path d="M14 17h7v-7"/>',
+  clear:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M7 12h10"/>',
+  tree1:'<path d="M12 3l5 7h-3l4 6H6l4-6H7z"/><path d="M12 16v5"/>',
+  tree2:'<path d="M8 5l4 5H9.5l3 4.5H4.5l3-4.5H5z"/><path d="M16 8l3.5 4.5H17l2.8 4H12l2.8-4h-2.3z"/><path d="M8 14.5V20M16 16.5V20"/>',
+  water:'<path d="M3 8c2.5 2 5.5 2 8 0s5.5-2 8 0M3 13c2.5 2 5.5 2 8 0s5.5-2 8 0M3 18c2.5 2 5.5 2 8 0s5.5-2 8 0"/>',
+  bldg:'<rect x="5" y="8" width="14" height="13"/><path d="M5 8l7-5 7 5M9 12h2M13 12h2M9 16h2M13 16h2"/>',
+  rough:'<circle cx="7" cy="15" r="2.5"/><circle cx="14" cy="17" r="2"/><circle cx="16" cy="9" r="3"/>',
+  dice:'<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.4" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.4" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.4" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.4" fill="currentColor"/>',
+  reset:'<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>',
+  photo:'<rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8 7l1.5-2.5h5L16 7"/>'
+};
+const TOOLS=[
+  {id:'pan',tip:'Bewegen & Mechs ziehen'},
+  {id:'mechA',tip:'Angreifer setzen'},
+  {id:'mechB',tip:'Ziel setzen'},
+  {div:1},
+  {id:'up',tip:'Level erhöhen'},
+  {id:'down',tip:'Level senken'},
+  {div:1},
+  {id:'clear',tip:'Terrain: Clear'},
+  {id:'tree1',tip:'Light Woods'},
+  {id:'tree2',tip:'Heavy Woods'},
+  {id:'water',tip:'Wasser (Klick: Tiefe 1/2)'},
+  {id:'bldg',tip:'Gebäude (Klick: Höhe 1–4)'},
+  {id:'rough',tip:'Rough'},
+  {div:1},
+  {id:'photo',tip:'Foto-Vorlage (laden & verschieben)'},
+  {id:'dice',tip:'Zufallskarte'},
+  {id:'reset',tip:'Standardkarte'}
+];
+function buildRail(){
+  const rail=document.getElementById('rail');
+  rail.innerHTML='';
+  for(const t of TOOLS){
+    if(t.div){ const d=document.createElement('div'); d.className='div'; rail.appendChild(d); continue; }
+    const b=document.createElement('button');
+    b.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${IC[t.id]}</svg><span class="tip">${t.tip}</span>`;
+    b.dataset.tool=t.id;
+    if(t.id===state.tool) b.classList.add('on');
+    b.onclick=()=>{
+      if(t.id==='dice'){ if(state.mode==='lessons'){lockedHint();return;} randomMap(); ensureUnitsValid(); recompute(); return; }
+      if(t.id==='reset'){ if(state.mode==='lessons'){lockedHint();return;} defaultMap(); state.atk.hex={q:0,r:2}; state.tgt.hex={q:8,r:2}; recompute(); return; }
+      if(t.id==='photo'&&!state.photo.img) document.getElementById('photofile').click();
+      state.tool=t.id;
+      document.querySelectorAll('.rail button').forEach(x=>x.classList.toggle('on',x.dataset.tool===t.id));
+      cv.classList.toggle('paint',!['pan','mechA','mechB','photo'].includes(t.id));
+    };
+    rail.appendChild(b);
+  }
+}
+function lockedHint(){
+  document.getElementById('hoverchip').innerHTML='<b>Lektion aktiv</b> — Karte gesperrt. Zum Experimentieren in den Sandbox-Tab wechseln.';
+}
+function applyTool(cellHex){
+  if(state.mode==='lessons'){ lockedHint(); return; }
+  const cell=hx(cellHex.q,cellHex.r);
+  if(!cell) return;
+  const t=state.tool;
+  const isUnit=(HexGeo.equals(cellHex,state.atk.hex)||HexGeo.equals(cellHex,state.tgt.hex));
+  if(t==='up') cell.level=Math.min(6,cell.level+1);
+  else if(t==='down') cell.level=Math.max(0,cell.level-1);
+  else if(t==='clear'){ cell.terrain='clear'; delete cell.depth; delete cell.bldgHeight; }
+  else if(t==='tree1'&&!isUnit){ cell.terrain='lightWoods'; delete cell.depth; delete cell.bldgHeight; }
+  else if(t==='tree2'&&!isUnit){ cell.terrain='heavyWoods'; delete cell.depth; delete cell.bldgHeight; }
+  else if(t==='water'){
+    if(cell.terrain==='water') cell.depth=cell.depth===1?2:1;
+    else{ cell.terrain='water'; cell.depth=1; cell.level=Math.min(cell.level,2); }
+    delete cell.bldgHeight;
+  }
+  else if(t==='bldg'&&!isUnit){
+    if(cell.terrain==='building') cell.bldgHeight=(cell.bldgHeight%4)+1;
+    else{ cell.terrain='building'; cell.bldgHeight=2; }
+    delete cell.depth;
+  }
+  else if(t==='rough'){ cell.terrain='rough'; delete cell.depth; delete cell.bldgHeight; }
+  else if(t==='mechA'&&!HexGeo.equals(cellHex,state.tgt.hex)) state.atk.hex={...cellHex};
+  else if(t==='mechB'&&!HexGeo.equals(cellHex,state.atk.hex)) state.tgt.hex={...cellHex};
+  state.terrainRev++;
+  recompute();
+}
+function ensureUnitsValid(){
+  for(const u of [state.atk,state.tgt]){
+    const c=hx(u.hex.q,u.hex.r);
+    if(c&&c.terrain==='building'){ c.terrain='clear'; delete c.bldgHeight; state.terrainRev++; }
+  }
+}
+
+/* ============================================================
+   Rechtes Panel
+   ============================================================ */
+const side=document.getElementById('side');
+function esc(s){ return s.replace(/</g,'&lt;'); }
+function renderSide(){
+  if(state.mode==='lessons'){ renderLessonPanel(); return; }
+  const res=state.result;
+  if(!res){ side.innerHTML=''; return; }
+  const rb=res.rb;
+  let vClass='ok', vTitle='LoS frei — kein Modifikator', vSub;
+  if(res.blocked){ vClass='no'; vTitle='LoS blockiert'; }
+  else if(res.totalMod>0){ vClass='mod'; vTitle=`LoS frei — Modifikator +${res.totalMod}`; }
+  if(res.sameHex) { vTitle='Gleiches Hex'; vSub='Angreifer und Ziel stehen im selben Hex.'; }
+  else if(res.blocked) vSub=`<b>Grund:</b> ${esc(res.blockReason||'')}`;
+  else vSub=`Der Angriff ist möglich${res.totalMod>0?`, alle Terrain-Modifikatoren zusammen: <b>+${res.totalMod}</b> auf den To-Hit-Wurf`:' — keine Terrain-Abzüge'}.`;
+  const distInfo=res.sameHex?'':`Distanz <b>${res.distance}</b> Hexes · Sichthöhe Angreifer <b>${res.attAbs}</b> · Ziel <b>${res.tgtAbs}</b>`;
+
+  let rowsHtml='';
+  for(const row of res.rows){
+    let val='<span class="val none">—</span>', hl='';
+    const labels=row.effects.map(e=>{
+      if(e.type==='block'){ val='<span class="val block">✕</span>'; hl='hl-block'; }
+      if(e.type==='woods'){ val=`<span class="val plus">+${rb.woodsPts[row.hex.terrain]}</span>`; hl=hl||'hl-woods'; }
+      if(e.type==='cover'&&!hl){ val='<span class="val cover">Cover</span>'; }
+      return e.label;
+    });
+    rowsHtml+=`<div class="rowx ${hl}">
+      <span class="hexno">${hexLabel(row.coord)}</span>
+      <span class="fx"><span class="main">${esc(terrName(row.hex))}</span> · ${esc(labels.join(' · '))}</span>
+      ${val}</div>`;
+  }
+  if(!res.rows.length&&!res.sameHex) rowsHtml='<div class="rowx"><span class="fx">Keine Zwischenhexes — die Einheiten stehen nebeneinander.</span></div>';
+
+  let modsHtml='';
+  if(!res.blocked&&res.mods.length){
+    modsHtml='<h3 class="sect">Modifikatoren</h3><div class="mods">'+
+      res.mods.map(m=>`<div class="modrow"><b>${esc(m.label)}</b><span>+${m.value}</span></div>`).join('')+
+      `<div class="modrow total"><span>Gesamt auf To-Hit</span><span>+${res.totalMod}</span></div></div>`;
+  }
+  const cites=new Set([rb.cite.losBase]);
+  for(const row of res.rows) for(const e of row.effects) if(e.cite) cites.add(e.cite);
+  if(res.partialCover) cites.add(rb.cite.partialCover);
+  if(res.divided) cites.add(rb.cite.divided);
+  if(state.atk.prone||state.tgt.prone) cites.add(rb.cite.prone);
+  const tgtHex=hx(state.tgt.hex.q,state.tgt.hex.r);
+  if(tgtHex.terrain==='water') cites.add(rb.cite.water);
+  const citeHtml=[...cites].map(c=>{
+    const i=c.indexOf('—');
+    return `<div class="cite"><b>${esc(i>0?c.slice(0,i):c)}</b>${i>0?' — '+esc(c.slice(i+1).trim()):''}</div>`;
+  }).join('');
+  const divNote=res.divided?`<div class="note"><b>Geteilte Linie:</b> Die Sichtlinie verläuft exakt auf einer Hexkante. Der Verteidiger wählt das günstigere Hex — hier wurde die für den Verteidiger bessere Variante gewertet.</div>`:'';
+
+  side.innerHTML=`
+    <div class="vcard">
+      <div class="verdict ${vClass}"><span class="vdot"></span><h2>${vTitle}</h2></div>
+      <div class="vsub">${vSub||''}${distInfo?'<br>'+distInfo:''}</div>
+    </div>
+    <div class="units">
+      ${unitCard(state.atk,'#d6533a','Angreifer','A')}
+      ${unitCard(state.tgt,'#4f93d8','Ziel','B')}
+    </div>
+    <h3 class="sect">Sichtlinie, Hex für Hex</h3>
+    <div class="rows">${rowsHtml}</div>
+    ${modsHtml}
+    ${divNote}
+    ${gatorHtml(res)}
+    <h3 class="sect">Regelgrundlage — ${esc(rb.name)}</h3>
+    ${citeHtml}
+    <div class="foot">Regeln seitengenau geprüft am BattleMech Manual (2017, v1.1.1) und verifiziert gegen die MegaMek-Referenzimplementierung. Inoffizielles Fan-Lernwerkzeug — BattleTech © Catalyst Game Labs.</div>`;
+  side.querySelectorAll('input[data-prone]').forEach(inp=>{
+    inp.onchange=()=>{ state[inp.dataset.prone].prone=inp.checked; recompute(); };
+  });
+  wireGator();
+}
+function gatorHtml(res){
+  const gc=gatorCalc(res);
+  const g=state.gator;
+  const sel=(id,opts,cur)=>`<select data-g="${id}" style="width:100%">${opts.map(o=>`<option value="${o[0]}" ${String(o[0])===String(cur)?'selected':''}>${o[1]}</option>`).join('')}</select>`;
+  let out;
+  if(!gc) out=`<div class="note">Keine gültige LoS — ohne Sichtlinie kein direkter Beschuss (LRM können indirekt feuern, BMM S. 30).</div>`;
+  else if(gc.out) out=`<div class="note">Ziel außer Reichweite: ${esc(gc.wpn.name)} reicht ${gc.wpn.l} Hexes, Distanz ist ${gc.d}.</div>`;
+  else{
+    const rows=[
+      ['G — Gunnery',`Skill des Schützen`,gc.g],
+      ['A — Attacker',`Bewegung: ${{still:'stillgestanden',walk:'gelaufen',run:'gerannt',jump:'gesprungen'}[g.amove]}`,gc.A],
+      ['T — Target',gc.tNotes.join(', '),gc.T],
+      ['O — Other',`Terrain +${gc.terrain}${gc.heat?` · Hitze +${gc.heat}`:''}`,gc.O],
+      ['R — Range',`${gc.d} Hexes = ${gc.rBracket}${gc.minMod?` · Min-Reichweite +${gc.minMod}`:''}`,gc.R+gc.minMod]
+    ];
+    out=`<div class="mods">${rows.map(r=>`<div class="modrow"><b>${r[0]}</b><span title="${esc(r[1])}">${r[2]>=0?'+':''}${r[2]}</span></div>
+      <div style="font-size:11px;color:var(--mut);margin:-4px 0 4px 2px">${esc(r[1])}</div>`).join('')}
+      <div class="modrow total"><span>Target Number (2W6)</span><span>${gc.tn}</span></div>
+      <div class="modrow"><b>Trefferchance</b><span style="color:${gc.prob>=58?'var(--green)':gc.prob>=28?'var(--amber2)':'#ef8570'}">${gc.prob.toFixed(1).replace('.',',')} %</span></div>
+    </div>`;
+  }
+  return `<h3 class="sect">GATOR — To-Hit-Rechner</h3>
+  <div class="vcard" style="margin-bottom:0">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:11.5px;color:var(--sub)">
+      <label>Gunnery ${sel('gunnery',[[0,'0 (Elite)'],[1,'1'],[2,'2'],[3,'3 (Veteran)'],[4,'4 (Regulär)'],[5,'5 (Grün)'],[6,'6']],g.gunnery)}</label>
+      <label>Angreifer bewegt ${sel('amove',[['still','stillgestanden +0'],['walk','gelaufen +1'],['run','gerannt +2'],['jump','gesprungen +3']],g.amove)}</label>
+      <label>Ziel bewegt (Hexes) ${sel('thexes',[[0,'0–2 (+0)'],[3,'3–4 (+1)'],[5,'5–6 (+2)'],[7,'7–9 (+3)'],[10,'10–17 (+4)'],[18,'18–24 (+5)'],[25,'25+ (+6)']],g.thexes)}</label>
+      <label>Hitze-Modifikator ${sel('heat',[[0,'+0'],[1,'+1'],[2,'+2'],[3,'+3'],[4,'+4']],g.heat)}</label>
+    </div>
+    <div style="display:flex;gap:12px;font-size:11.5px;color:var(--sub);margin-bottom:10px">
+      <label style="display:flex;gap:5px;align-items:center"><input type="checkbox" data-gc="tjump" ${g.tjump?'checked':''}> Ziel sprang</label>
+      <label style="display:flex;gap:5px;align-items:center"><input type="checkbox" data-gc="timmobile" ${g.timmobile?'checked':''}> unbeweglich</label>
+    </div>
+    ${out}
+  </div>`;
+}
+function wireGator(){
+  side.querySelectorAll('[data-g]').forEach(s=>{
+    s.onchange=()=>{
+      const k=s.dataset.g, v=s.value;
+      state.gator[k]=(k==='amove')?v:parseInt(v,10);
+      renderSide();
+    };
+  });
+  side.querySelectorAll('[data-gc]').forEach(c=>{
+    c.onchange=()=>{ state.gator[c.dataset.gc]=c.checked; renderSide(); };
+  });
+}
+function unitCard(u,col,name,tag){
+  const hex=hx(u.hex.q,u.hex.r);
+  return `<div class="ucard">
+    <div class="uh"><span class="usw" style="background:${col}"></span>${name} · ${hexLabel(u.hex)}</div>
+    <div class="um">${terrName(hex)}, Level ${hex.level}${hex.terrain==='water'?` (Tiefe ${hex.depth||0})`:''}<br>Sichthöhe: ${unitAbsHeight(state.map,u)}</div>
+    <label><input type="checkbox" data-prone="${tag==='A'?'atk':'tgt'}" ${u.prone?'checked':''}> liegend (prone)</label>
+  </div>`;
+}
+function terrName(hex){
+  const n={clear:'Freies Gelände',rough:'Rough',lightWoods:'Light Woods',heavyWoods:'Heavy Woods',
+           water:'Wasser',building:'Gebäude'};
+  let s=n[hex.terrain]||hex.terrain;
+  if(hex.terrain==='building') s+=` (Höhe ${hex.bldgHeight||1})`;
+  if(hex.level>0&&hex.terrain!=='building') s+=`, Level ${hex.level}`;
+  return s;
+}
+
+/* ============================================================
+   Lektionen
+   ============================================================ */
+const LESSONS=[
+  {grp:'Grundlagen', t:'Die Grundregel', d:'Wie die Sichtlinie überhaupt gezogen wird.',
+   q:'Hat der Angreifer freie LoS auf das Ziel?', opts:['Freie LoS','Blockiert'], correct:0,
+   x:'Die LoS wird von Hexmitte zu Hexmitte gezogen (BMM S. 22). Auf freiem, ebenem Gelände stört nichts: freie Sicht, kein Modifikator.',
+   map:{}, atk:[2,5], tgt:[9,5]},
+  {t:'Der Hügel', d:'Wann blockiert eine Geländestufe?',
+   q:'Ein Level-2-Hügel liegt mittig zwischen zwei Mechs auf Level 0. Blockiert er?', opts:['Freie LoS','Blockiert'], correct:1,
+   x:'Stehende Mechs sind 2 Level hoch: LoS-Level = Hexlevel + 2, hier also 2. Der Hügel (Level 2) ist damit GLEICH hoch wie beide Mechs — und »gleich oder höher als beide« interveniert (BMM S. 23). Ein Level-1-Hügel hätte nicht blockiert: senke ihn testweise ab!',
+   map:{'6,5':{level:2}}, atk:[2,5], tgt:[10,5]},
+  {t:'Partial Cover', d:'Halb versteckt hinter der Kante.',
+   q:'Das Ziel steht direkt hinter einer Level-1-Stufe. Ist die LoS blockiert?', opts:['Freie LoS','Blockiert'], correct:0,
+   x:'Nicht blockiert! Die Stufe ist exakt 1 Level über dem Zielhex und liegt angrenzend in der LoS: Partial Cover (BMM S. 26) — +1 auf den Angriff, Beintreffer treffen die Deckung.',
+   map:{'8,5':{level:1}}, atk:[2,5], tgt:[9,5]},
+  {t:'Waldpunkte zählen', d:'Wieviel Wald verträgt eine Sichtlinie?',
+   q:'Zwei Light Woods liegen in der Linie. Ist die LoS blockiert?', opts:['Freie LoS','Blockiert'], correct:0,
+   x:'Zwei Light Woods = 2 Punkte, unter der Grenze von 3 (BMM S. 23). LoS frei, aber +1 pro Wald → Gesamt +2. Male ein drittes Waldhex in die Linie und sieh, was passiert.',
+   map:{'4,5':{terrain:'lightWoods'},'7,5':{terrain:'lightWoods'}}, atk:[2,5], tgt:[10,5]},
+  {t:'Zu viel Wald', d:'Die 3-Punkte-Grenze.',
+   q:'Light Woods + Heavy Woods in der Linie. Ist die LoS blockiert?', opts:['Freie LoS','Blockiert'], correct:1,
+   x:'Light (1) + Heavy (2) = 3 Punkte Zwischen-Wald — Grenze erreicht, LoS blockiert (BMM S. 23). Merksatz: Mehr als 2 Punkte Wald ZWISCHEN den Mechs gehen nie.',
+   map:{'4,5':{terrain:'lightWoods'},'7,5':{terrain:'heavyWoods'}}, atk:[2,5], tgt:[10,5]},
+  {t:'Im Wald vs. hinter dem Wald', d:'Der häufigste Irrtum.',
+   q:'Das Ziel steht in Light Woods, dazwischen liegt ein Heavy Woods. Ist die LoS blockiert?', opts:['Freie LoS','Blockiert'], correct:0,
+   x:'Überraschung: NICHT blockiert! Das Zielhex zählt nicht als Zwischenterrain (BMM S. 22) — nur der Heavy Woods (2 Punkte) liegt dazwischen. Das Ziel-Waldhex gibt aber einen Modifikator: Heavy dazwischen +2, Ziel in Light +1 → Gesamt +3. Ein sehr verbreiteter Regelfehler am Spieltisch!',
+   map:{'6,5':{terrain:'heavyWoods'},'10,5':{terrain:'lightWoods'}}, atk:[2,5], tgt:[10,5]},
+  {t:'Höhenvorteil', d:'Von oben sieht man über den Wald.',
+   q:'Beide Mechs stehen auf Level-3-Hügeln, dazwischen Heavy Woods auf Level 0. Blockiert der Wald?', opts:['Freie LoS','Blockiert'], correct:0,
+   x:'Die Waldkrone reicht bis Level 2 (Hex 0 + 2) — beide Mechs haben LoS-Level 5 und schauen darüber hinweg. Der Wald zählt weder als Blockade noch als Modifikator. Höhe ist in BattleTech Gold wert.',
+   map:{'2,5':{level:3},'9,5':{level:3},'5,5':{terrain:'heavyWoods'},'6,5':{terrain:'heavyWoods'}}, atk:[2,5], tgt:[9,5]},
+  {t:'Die geteilte Linie', d:'Wenn die LoS genau auf der Kante läuft.',
+   q:'Die Linie verläuft exakt zwischen zwei Hexes: links Heavy Woods, rechts frei. Zählt der Wald?', opts:['Ja, der Verteidiger wählt ihn','Nein, der Angreifer wählt frei'], correct:0,
+   x:'Läuft die LoS exakt auf der Kante, entscheidet der Spieler des ZIELS, durch welches Hex sie führt (BMM S. 22) — und der nimmt natürlich den Wald: +2. Blockieren kann er hier nicht, aber verteuern.',
+   map:{'6,4':{terrain:'heavyWoods'}}, atk:[5,5], tgt:[7,4]},
+
+  {grp:'Fortgeschritten', t:'Bergab negiert Deckung', d:'Wann Partial Cover NICHT gilt.',
+   q:'Das Ziel duckt sich hinter eine Level-1-Kante, aber der Angreifer steht auf einem Level-2-Hügel. Bekommt das Ziel Partial Cover?', opts:['Ja, +1','Nein, keine Deckung'], correct:1,
+   x:'Nein! Steht der Angreifer mit seinem LoS-Level HÖHER als das Ziel, entfällt Partial Cover — er schießt über die Kante hinweg (BMM S. 26). Einzige Ausnahme: Deckung durch Wasser.',
+   map:{'2,5':{level:2},'8,5':{level:1}}, atk:[2,5], tgt:[9,5]},
+  {t:'Wasser deckt immer', d:'Die Ausnahme der Bergab-Regel.',
+   q:'Das Ziel steht in Tiefe-1-Wasser, der Angreifer hoch oben auf Level 3. Partial Cover?', opts:['Ja, +1','Nein, er schießt ja bergab'], correct:0,
+   x:'Ja! Wasserdeckung gilt IMMER — auch gegen höher stehende Angreifer (BMM S. 26). Die Beine stecken schließlich physisch im Wasser. +1 auf den Angriff, Beintreffer verpuffen im Wasser.',
+   map:{'2,5':{level:3},'9,5':{terrain:'water',depth:1}}, atk:[2,5], tgt:[9,5]},
+  {t:'Die übersehene Schneise', d:'Wald zählt nur nach der Drei-Fälle-Regel.',
+   q:'Angreifer auf Level 3, Ziel auf Level 0, mittig ein Light Woods (Krone Level 2 — genau auf Ziel-LoS-Höhe). Gibt es +1?', opts:['Ja, +1','Nein, der Wald zählt nicht'], correct:1,
+   x:'Nein! Terrain interveniert nur, wenn es ≥ BEIDEN Mechs ist (Krone 2 < Angreifer 5) oder ≥ einem UND direkt angrenzend (der Wald grenzt an keinen an). Beides trifft nicht zu → der Wald wird komplett ignoriert (BMM S. 23). Schiebe den Wald testweise direkt vors Ziel!',
+   map:{'2,5':{level:3},'6,5':{terrain:'lightWoods'}}, atk:[2,5], tgt:[10,5]},
+  {t:'Liegend hinter der Kante', d:'Prone Mechs sind nur 1 Level hoch.',
+   q:'Das Ziel liegt (prone) direkt hinter einer Level-1-Kante. Was passiert?', opts:['Partial Cover +1','LoS komplett blockiert'], correct:1,
+   x:'Liegende Mechs sind nur 1 Level hoch und können KEIN Partial Cover erhalten — stattdessen verschwinden sie hinter der Kante komplett (BMM S. 26). Ideal zum Verstecken, schlecht zum Zurückschießen.',
+   map:{'8,5':{level:1}}, atk:[2,5], tgt:[9,5], tgtProne:true},
+  {t:'Der Verteidiger mauert', d:'Kantenwahl als Totalblockade.',
+   q:'Die LoS läuft exakt auf der Kante: links ein Gebäude (Höhe 2), rechts frei. Kommt der Schuss durch?', opts:['Ja, rechts vorbei','Nein, blockiert'], correct:1,
+   x:'Nein! Der Verteidiger wählt das Kanten-Hex (BMM S. 22) — und er wählt das Gebäude: LoS blockiert. Die Kantenwahl kann einen Schuss also nicht nur verteuern, sondern komplett verhindern. Positionierung entscheidet.',
+   map:{'6,4':{terrain:'building',bldgHeight:2}}, atk:[5,5], tgt:[7,4]},
+
+  {grp:'GATOR', kind:'gator', t:'GATOR zusammensetzen', d:'Der To-Hit-Wurf, Buchstabe für Buchstabe.',
+   q:'Gunnery 4, Angreifer ist gelaufen, das Ziel hat 5 Hexes zurückgelegt, freie Sicht, Großlaser auf 7 Hexes (mittlere Reichweite). Wie hoch ist die Target Number?',
+   x:'G4 (Skill) + A1 (gelaufen) + T2 (5 Hexes bewegt) + O0 (kein Terrain) + R2 (mittlere Reichweite) = TN 9. Mit 2W6 heißt das: nur 27,8 % Trefferchance. GATOR = Gunnery, Attacker movement, Target movement, Other, Range.',
+   map:{}, atk:[2,5], tgt:[9,5], gator:{gunnery:4,amove:'walk',thexes:5,tjump:false,timmobile:false,heat:0}, weapon:'laser'},
+  {kind:'gator', t:'Springen kostet', d:'Wenn der Wurf unmöglich wird.',
+   q:'Der Angreifer ist gesprungen (+3), das Ziel raste 10 Hexes weit UND sprang. Großlaser, 7 Hexes. Target Number?',
+   x:'G4 + A3 (gesprungen) + T5 (10 Hexes = +4, gesprungen +1) + O0 + R2 = TN 14 — mit 2W6 nicht würfelbar (max. 12). Lektion: Wer selbst springt und auf schnelle Ziele schießt, verschwendet oft nur Munition und Hitze.',
+   map:{}, atk:[2,5], tgt:[9,5], gator:{gunnery:4,amove:'jump',thexes:10,tjump:true,timmobile:false,heat:0}, weapon:'laser'},
+  {kind:'gator', t:'Minimum Range', d:'Warum die PPC kein Nahkampfwerkzeug ist.',
+   q:'PPC auf nur 2 Hexes (Minimum Range 3!), beide standen still, das Ziel steht in Light Woods. Target Number?',
+   x:'G4 + A0 + T0 + O1 (Ziel in Light Woods) + R0 (kurze Reichweite) + Minimum-Range-Strafe [3 − 2 + 1] = +2 → TN 7. Die Formel: Min-Reichweite minus Distanz plus 1 (BMM S. 27). Auf 1 Hex wäre es schon +3.',
+   map:{'6,5':{terrain:'lightWoods'}}, atk:[4,5], tgt:[6,5], gator:{gunnery:4,amove:'still',thexes:0,tjump:false,timmobile:false,heat:0}, weapon:'ppc'}
+];
+function renderLessonPanel(){
+  if(state.lesson===null){
+    let list='';
+    LESSONS.forEach((l,i)=>{
+      if(l.grp) list+=`<h3 class="sect">${l.grp}</h3>`;
+      list+=`<button data-i="${i}" class="${state.lessonsDone.has(i)?'done':''}">
+        <div class="lt"><span class="ln">${state.lessonsDone.has(i)?'✓':i+1}</span>${esc(l.t)}</div>
+        <div class="ld">${esc(l.d)}</div></button>`;
+    });
+    side.innerHTML=`<div class="vcard"><div class="verdict mod"><span class="vdot"></span><h2>Lektionen</h2></div>
+      <div class="vsub">${LESSONS.length} Szenarien vom ersten Sichtlinien-Check bis zum GATOR-Kopfrechnen. Jede Lektion lädt eine Situation auf die Karte — entscheide dich, dann kommt die Auflösung mit Regelstelle.</div></div>
+      <div class="lesson-list">${list}</div>`;
+    side.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>loadLesson(+b.dataset.i));
+    return;
+  }
+  const l=LESSONS[state.lesson];
+  const res=state.result;
+  const isGator=l.kind==='gator';
+  const gc=isGator?gatorCalc(res):null;
+  let opts, correctIdx;
+  if(isGator&&gc&&!gc.out){
+    opts=[gc.tn-2,gc.tn-1,gc.tn,gc.tn+1].map(n=>'TN '+n);
+    correctIdx=2;
+  }else{ opts=l.opts; correctIdx=l.correct; }
+  let body='';
+  if(state.lessonAnswered===false){
+    body=`<div class="qbtns" style="flex-wrap:wrap">${opts.map((o,i)=>`<button data-a="${i}" style="min-width:calc(50% - 5px)">${esc(o)}</button>`).join('')}</div>`;
+  }else{
+    const correct=state.lessonAnswered===correctIdx;
+    body=`<div class="fb ${correct?'ok':'no'}"><b>${correct?'Richtig!':'Nicht ganz — richtig wäre: '+esc(opts[correctIdx])+'.'}</b> ${esc(l.x)}</div>
+      ${isGator&&gc&&!gc.out?`<div class="note" style="margin-top:10px">Engine: G${gc.g} + A${gc.A} + T${gc.T} + O${gc.O} + R${gc.R+gc.minMod} = <b>TN ${gc.tn}</b> · Trefferchance ${gc.prob.toFixed(1).replace('.',',')} %</div>`:''}
+      ${!isGator&&res?`<div class="note" style="margin-top:10px">Engine: ${res.blocked?'LoS blockiert — '+esc(res.blockReason||''):(res.totalMod>0?'LoS frei, Modifikator +'+res.totalMod:'LoS frei, kein Modifikator')}${res.partialCover?' · Partial Cover':''}</div>`:''}
+      <div class="lnav">
+        <button id="l-back">Übersicht</button>
+        <button id="l-next" class="primary">${state.lesson<LESSONS.length-1?'Nächste Lektion':'Fertig'}</button>
+      </div>`;
+  }
+  side.innerHTML=`
+    <div class="vcard qcard">
+      <div class="verdict mod"><span class="vdot"></span><h2>Lektion ${state.lesson+1}: ${esc(l.t)}</h2></div>
+      <div class="q" style="margin-top:10px">${esc(l.q)}</div>
+      ${body}
+    </div>
+    <div class="foot">Tipp: Wechsle in den Sandbox-Tab, um die Situation zu verändern — die Karte bleibt geladen.</div>`;
+  side.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{ state.lessonAnswered=+b.dataset.a; renderLessonPanel(); });
+  const nx=document.getElementById('l-next'), bk=document.getElementById('l-back');
+  if(nx) nx.onclick=()=>{
+    state.lessonsDone.add(state.lesson);
+    if(state.lesson<LESSONS.length-1) loadLesson(state.lesson+1);
+    else { state.lesson=null; renderLessonPanel(); }
+  };
+  if(bk) bk.onclick=()=>{ state.lessonsDone.add(state.lesson); state.lesson=null; renderLessonPanel(); };
+}
+function loadLesson(i){
+  const l=LESSONS[i];
+  state.lesson=i; state.lessonAnswered=false;
+  state.map.clear();
+  for(let q=0;q<COLS;q++) for(let r=0;r<ROWS;r++) setHex(q,r,{});
+  for(const [k,v] of Object.entries(l.map)){
+    const [q,r]=k.split(',').map(Number);
+    setHex(q,r,v);
+  }
+  state.atk={hex:{q:l.atk[0],r:l.atk[1]},prone:!!l.atkProne};
+  state.tgt={hex:{q:l.tgt[0],r:l.tgt[1]},prone:!!l.tgtProne};
+  if(l.gator) Object.assign(state.gator,l.gator);
+  if(l.weapon) document.getElementById('weapon').value=l.weapon;
+  recompute();
+}
+
+/* ============================================================
+   Events
+   ============================================================ */
+let drag=null;
+cv.addEventListener('mousedown',e=>{
+  const {mx,my}=mouse(e);
+  const h=pickHex(mx,my);
+  if(state.tool==='photo'){
+    if(state.photo.img) drag={photo:true,sx:e.clientX,sy:e.clientY,px:state.photo.x,py:state.photo.y};
+    return;
+  }
+  if(state.tool==='pan'){
+    const canEdit=state.mode!=='lessons';
+    if(canEdit&&h&&HexGeo.equals(h,state.atk.hex)) drag={unit:state.atk};
+    else if(canEdit&&h&&HexGeo.equals(h,state.tgt.hex)) drag={unit:state.tgt};
+    else drag={pan:true,sx:e.clientX,sy:e.clientY,px:state.panX,py:state.panY};
+    cv.style.cursor='grabbing';
+  }else if(h){
+    applyTool(h);
+    drag={paint:true,last:HexGeo.key(h)};
+  }
+});
+window.addEventListener('mousemove',e=>{
+  if(state.style==='gl') return;
+  const {mx,my}=mouse(e);
+  if(drag){
+    if(drag.pan){
+      state.panX=drag.px+(e.clientX-drag.sx);
+      state.panY=drag.py+(e.clientY-drag.sy);
+    }else if(drag.unit){
+      const h=pickHex(mx,my);
+      if(h){
+        const other=drag.unit===state.atk?state.tgt:state.atk;
+        if(!HexGeo.equals(h,other.hex)&&!HexGeo.equals(h,drag.unit.hex)){
+          drag.unit.hex={...h}; recompute();
+        }
+      }
+    }else if(drag.photo){
+      state.photo.x=drag.px+(e.clientX-drag.sx)/state.zoom;
+      state.photo.y=drag.py+(e.clientY-drag.sy)/state.zoom;
+    }else if(drag.paint&&['up','down','clear','tree1','tree2','rough'].includes(state.tool)){
+      const h=pickHex(mx,my);
+      if(h&&HexGeo.key(h)!==drag.last){ drag.last=HexGeo.key(h); applyTool(h); }
+    }
+    return;
+  }
+  const h=pickHex(mx,my);
+  state.hover=h;
+  const chip=document.getElementById('hoverchip');
+  if(h){
+    const cell=hx(h.q,h.r);
+    chip.innerHTML=`Hex <b>${hexLabel(h)}</b> · ${esc(terrName(cell))}`;
+  } else chip.textContent='—';
+});
+window.addEventListener('mouseup',()=>{ drag=null; cv.style.cursor=''; });
+cv.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const {mx,my}=mouse(e);
+  const f=e.deltaY<0?1.1:0.9;
+  const nz=Math.max(0.45,Math.min(2.4,state.zoom*f));
+  state.panX=mx-(mx-state.panX)*(nz/state.zoom);
+  state.panY=my-(my-state.panY)*(nz/state.zoom);
+  state.zoom=nz;
+},{passive:false});
+function mouse(e){
+  const r=cv.getBoundingClientRect();
+  return {mx:e.clientX-r.left,my:e.clientY-r.top};
+}
+document.getElementById('tab-sandbox').onclick=()=>switchMode('sandbox');
+document.getElementById('tab-lessons').onclick=()=>switchMode('lessons');
+function switchMode(m){
+  state.mode=m;
+  document.getElementById('tab-sandbox').classList.toggle('on',m==='sandbox');
+  document.getElementById('tab-lessons').classList.toggle('on',m==='lessons');
+  if(m==='lessons'&&state.lesson===null) renderLessonPanel(); else renderSide();
+}
+document.querySelectorAll('#rbseg button').forEach(b=>{
+  b.onclick=()=>{
+    state.rulebook=b.dataset.rb;
+    document.querySelectorAll('#rbseg button').forEach(x=>x.classList.toggle('on',x===b));
+    document.getElementById('rbchip').innerHTML='Regeln: <b>'+RULEBOOKS[state.rulebook].name+'</b>';
+    recompute();
+  };
+});
+document.querySelectorAll('#styleseg button').forEach(b=>{
+  b.onclick=()=>{
+    const st=b.dataset.style;
+    if(st==='gl'&&!glEnsure()){
+      document.getElementById('hoverchip').innerHTML='<b>3D nicht verfügbar</b> — three.js-CDN nicht erreichbar (Internet nötig)';
+      return;
+    }
+    state.style=st;
+    document.querySelectorAll('#styleseg button').forEach(x=>x.classList.toggle('on',x===b));
+    const is3d=st==='gl';
+    document.getElementById('gl3d').style.display=is3d?'block':'none';
+    cv.style.display=is3d?'none':'block';
+    if(is3d){ glResize(); glSync(true); }
+  };
+});
+document.getElementById('photofile').addEventListener('change',e=>{
+  const fl=e.target.files[0]; if(!fl) return;
+  const img=new Image();
+  img.onload=()=>{
+    state.photo.img=img; state.photo.x=0; state.photo.y=0; state.photo.scale=1;
+    document.getElementById('photopanel').style.display='flex';
+  };
+  img.src=URL.createObjectURL(fl);
+  e.target.value='';
+});
+document.getElementById('ph-op').oninput=function(){ state.photo.opacity=this.value/100; };
+document.getElementById('ph-sc').oninput=function(){ state.photo.scale=this.value/100; };
+document.getElementById('ph-rm').onclick=()=>{
+  state.photo.img=null;
+  document.getElementById('photopanel').style.display='none';
+};
+document.getElementById('weapon').addEventListener('change',()=>{
+  if(state.mode==='sandbox') renderSide(); else if(state.lesson!==null) renderLessonPanel();
+});
+document.getElementById('firebtn').onclick=fire;
+document.getElementById('autobtn').onclick=function(){
+  state.autoFire=!state.autoFire;
+  this.classList.toggle('on',state.autoFire);
+};
+document.getElementById('proftoggle').onclick=function(){
+  const pc=document.getElementById('profcard');
+  pc.classList.toggle('min');
+  this.textContent=pc.classList.contains('min')?'+':'–';
+};
+
+/* ============================================================
+   Loop & Boot
+   ============================================================ */
+function recompute(){
+  ensureUnitsValid();
+  state.result=computeLoS(state.map,state.atk,state.tgt,state.rulebook);
+  renderSide();
+  drawProfile();
+  if(typeof GL!=='undefined'&&GL.ready) glSync();
+}
+function resize(){
+  const st=document.getElementById('stage');
+  const dpr=window.devicePixelRatio||1;
+  cv.width=st.clientWidth*dpr; cv.height=st.clientHeight*dpr;
+  cv.style.width=st.clientWidth+'px'; cv.style.height=st.clientHeight+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const pc=document.getElementById('profcard');
+  pcv.width=pc.clientWidth;
+  drawProfile();
+  if(typeof GL!=='undefined'&&GL.ready) glResize();
+}
+window.addEventListener('resize',()=>{ resize(); });
+let lastAuto=0;
+function loop(t){
+  state.time=t;
+  if(state.style==='dio'){
+    if(state.particles.length<60&&Math.random()<0.3){
+      state.particles.push({x:Math.random()*cv.width/devicePixelRatio,y:-5,s:0.6+Math.random()*1.4,vx:(Math.random()-0.5)*0.15,vy:0.12+Math.random()*0.25});
+    }
+    for(const p of state.particles){ p.x+=p.vx; p.y+=p.vy; }
+    state.particles=state.particles.filter(p=>p.y<cv.height/devicePixelRatio+10);
+  } else state.particles.length=0;
+  if(state.autoFire&&t-lastAuto>1600){
+    lastAuto=t;
+    const w=document.getElementById('weapon');
+    w.value=['laser','ppc','ac','lrm'][Math.floor(Math.random()*4)];
+    fire();
+  }
+  if(state.style==='gl'&&typeof GL!=='undefined'&&GL.ready) glRender(t); else drawScene();
+  requestAnimationFrame(loop);
+}
+defaultMap();
+buildRail();
+document.getElementById('rbchip').innerHTML='Regeln: <b>BattleMech Manual</b>';
+resize();
+centerMap();
+recompute();
+requestAnimationFrame(loop);
+</script>
+<script>
+/* ============================================================
+   3D-Modus — echtes WebGL-Diorama (three.js)
+   ============================================================ */
+const GL={ready:false,builtRev:-1,hexMeshes:[],shots:[],mats:{},geos:{},tex:{}};
+const HX3=1, LH3=0.5, SLAB=0.42;
+function wpos(q,r){ return {x:q*1.5*HX3, z:(r+q/2)*Math.sqrt(3)*HX3}; }
+function glMat(color,opts){
+  const key=color+JSON.stringify(opts||{});
+  if(!GL.mats[key]) GL.mats[key]=new THREE.MeshStandardMaterial(Object.assign({color:new THREE.Color(color),roughness:0.82,metalness:0.05},opts||{}));
+  return GL.mats[key];
+}
+function glHexGeo(h){
+  const key='h'+h.toFixed(3);
+  if(!GL.geos[key]){
+    const g=new THREE.CylinderGeometry(0.955,1.0,h,6);
+    g.rotateY(Math.PI/2);
+    GL.geos[key]=g;
+  }
+  return GL.geos[key];
+}
+function glNoise(key,base,specks){
+  if(GL.tex[key]) return GL.tex[key];
+  const c=document.createElement('canvas'); c.width=c.height=128;
+  const x=c.getContext('2d');
+  x.fillStyle=base; x.fillRect(0,0,128,128);
+  for(const sp of specks){
+    x.fillStyle=sp[0];
+    const n=sp[1], sz=sp[2]||2;
+    for(let i=0;i<n;i++){
+      x.globalAlpha=0.22+Math.random()*0.45;
+      const w2=sz*(0.5+Math.random());
+      x.fillRect(Math.random()*128,Math.random()*128,w2,w2*(0.6+Math.random()));
+    }
+  }
+  x.globalAlpha=1;
+  GL.tex[key]=new THREE.CanvasTexture(c);
+  return GL.tex[key];
+}
+function glTopMat(key,base,specks){
+  const k='top_'+key;
+  if(!GL.mats[k]) GL.mats[k]=new THREE.MeshStandardMaterial({map:glNoise(key,base,specks),roughness:0.92,metalness:0.02});
+  return GL.mats[k];
+}
+function glTopFor(hex){
+  if(hex.terrain==='rough') return glTopMat('gravel','#8c8370',[['#6a6355',240,3],['#b3a893',130,3],['#4f4a40',70,4]]);
+  if(hex.terrain==='lightWoods') return glTopMat('lwfloor','#5c854c',[['#44653a',240],['#79a765',140],['#39543a',80,3]]);
+  if(hex.terrain==='heavyWoods') return glTopMat('hwfloor','#3c663f',[['#2c4d30',240],['#4f8352',120],['#24402a',80,3]]);
+  if(hex.level>=2) return glTopMat('rock','#9c9481',[['#787163',220],['#c2baa6',150],['#5f594e',90,3]]);
+  return glTopMat('grass','#8f9c5c',[['#6a7546',260],['#b8c47e',190],['#55622f',110]]);
+}
+function glEnsure(){
+  if(GL.ready) return true;
+  if(typeof THREE==='undefined') return false;
+  const cvs=document.getElementById('gl3d');
+  GL.renderer=new THREE.WebGLRenderer({canvas:cvs,antialias:true});
+  GL.renderer.shadowMap.enabled=true;
+  GL.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  GL.renderer.outputEncoding=THREE.sRGBEncoding;
+  GL.renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  GL.renderer.toneMappingExposure=1.15;
+  GL.scene=new THREE.Scene();
+  GL.scene.background=new THREE.Color(0x16202e);
+  GL.scene.fog=new THREE.Fog(0x16202e,42,95);
+  GL.camera=new THREE.PerspectiveCamera(40,1,0.1,300);
+  GL.orbit={theta:-0.62,phi:0.95,R:26};
+  const a=wpos(0,0), b=wpos(COLS-1,ROWS-1), c2=wpos(COLS-1,0), d=wpos(0,ROWS-1);
+  GL.center={x:(a.x+b.x)/2, z:(Math.min(a.z,c2.z,d.z)+Math.max(b.z,c2.z,d.z))/2};
+  GL.scene.add(new THREE.HemisphereLight(0xcfe0f2,0x2b2216,0.8));
+  GL.scene.add(new THREE.AmbientLight(0x333a4c,0.55));
+  const sun=new THREE.DirectionalLight(0xffe9c4,1.3);
+  sun.position.set(GL.center.x+13,24,GL.center.z-9);
+  sun.target.position.set(GL.center.x,0,GL.center.z);
+  sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048);
+  sun.shadow.camera.left=-19; sun.shadow.camera.right=19;
+  sun.shadow.camera.top=19; sun.shadow.camera.bottom=-19;
+  sun.shadow.camera.far=80; sun.shadow.bias=-0.0004;
+  GL.scene.add(sun); GL.scene.add(sun.target);
+  const spanX=(COLS-1)*1.5+3.6, spanZ=(ROWS+0.5)*Math.sqrt(3)+2.2;
+  const plinth=new THREE.Mesh(new THREE.BoxGeometry(spanX,1.5,spanZ),
+    new THREE.MeshStandardMaterial({map:glWoodTex(),roughness:0.7}));
+  plinth.position.set(GL.center.x,-0.75,GL.center.z);
+  plinth.receiveShadow=true;
+  GL.scene.add(plinth);
+  GL.terrain=new THREE.Group(); GL.units=new THREE.Group();
+  GL.los=new THREE.Group(); GL.fx=new THREE.Group();
+  GL.scene.add(GL.terrain); GL.scene.add(GL.units); GL.scene.add(GL.los); GL.scene.add(GL.fx);
+  const N=260, pos=new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    pos[i*3]=GL.center.x+(Math.random()-0.5)*36;
+    pos[i*3+1]=Math.random()*14;
+    pos[i*3+2]=GL.center.z+(Math.random()-0.5)*30;
+  }
+  const pg=new THREE.BufferGeometry();
+  pg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  GL.dust=new THREE.Points(pg,new THREE.PointsMaterial({color:0xfff4dd,size:0.045,transparent:true,opacity:0.38}));
+  GL.scene.add(GL.dust);
+  const rp=[];
+  for(let i=0;i<=6;i++){ const an=Math.PI/3*i; rp.push(new THREE.Vector3(Math.cos(an),0,Math.sin(an))); }
+  GL.hover=new THREE.Line(new THREE.BufferGeometry().setFromPoints(rp),
+    new THREE.LineBasicMaterial({color:0xf5c069,transparent:true,opacity:0.95}));
+  GL.hover.visible=false; GL.scene.add(GL.hover);
+  GL.raycaster=new THREE.Raycaster();
+  GL.ready=true;
+  glResize(); glEvents(); glSync(true);
+  return true;
+}
+function glWoodTex(){
+  if(GL.tex.wood) return GL.tex.wood;
+  const c=document.createElement('canvas'); c.width=256; c.height=256;
+  const x=c.getContext('2d');
+  x.fillStyle='#6b4b2e'; x.fillRect(0,0,256,256);
+  for(let i=0;i<44;i++){
+    x.strokeStyle='rgba('+(40+Math.random()*30|0)+','+(25+Math.random()*20|0)+',12,'+(0.25+Math.random()*0.3).toFixed(2)+')';
+    x.lineWidth=1+Math.random()*2.5;
+    x.beginPath(); const y=Math.random()*256;
+    x.moveTo(0,y); x.bezierCurveTo(85,y+Math.random()*14-7,170,y+Math.random()*14-7,256,y);
+    x.stroke();
+  }
+  GL.tex.wood=new THREE.CanvasTexture(c);
+  GL.tex.wood.wrapS=GL.tex.wood.wrapT=THREE.RepeatWrapping;
+  return GL.tex.wood;
+}
+function glWinTex(){
+  if(GL.tex.win) return GL.tex.win;
+  const c=document.createElement('canvas'); c.width=128; c.height=128;
+  const x=c.getContext('2d');
+  x.fillStyle='#3a4150'; x.fillRect(0,0,128,128);
+  for(let gy=0;gy<5;gy++) for(let gx=0;gx<4;gx++){
+    x.fillStyle=Math.random()<0.4?'#ffcf7d':'#171c26';
+    x.fillRect(10+gx*30,10+gy*24,16,12);
+  }
+  GL.tex.win=new THREE.CanvasTexture(c);
+  return GL.tex.win;
+}
+function glClear(group){
+  while(group.children.length){
+    const o=group.children.pop();
+    if(o.userData&&o.userData.tmp){
+      if(o.geometry) o.geometry.dispose();
+      if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); }
+    }
+    group.remove(o);
+  }
+}
+function glRebuildTerrain(){
+  glClear(GL.terrain); GL.hexMeshes.length=0;
+  const P=PAL.dio;
+  for(let q=0;q<COLS;q++) for(let r=0;r<ROWS;r++){
+    const hex=hx(q,r), w=wpos(q,r);
+    const cols=terrCols(hex,P);
+    const topY=SLAB+hex.level*LH3;
+    if(hex.terrain==='water'){
+      const ground=hex.level-(hex.depth||0);
+      const gh=Math.max(0.12,SLAB+ground*LH3);
+      const m=new THREE.Mesh(glHexGeo(gh),[glMat('#7a6a52'),glTopMat('sand','#8d7c60',[['#7a6a52',200],['#a5946f',140],['#6e5f48',80]]),glMat('#555555')]);
+      m.position.set(w.x,gh/2,w.z);
+      m.castShadow=m.receiveShadow=true; m.userData={q:q,r:r};
+      GL.terrain.add(m); GL.hexMeshes.push(m);
+      const wh=Math.max(0.06,topY-gh);
+      const wm=new THREE.Mesh(glHexGeo(wh),glMat(cols[0],{transparent:true,opacity:0.72,roughness:0.22,metalness:0.12}));
+      wm.position.set(w.x,gh+wh/2,w.z);
+      wm.userData={q:q,r:r};
+      GL.waterMat=wm.material;
+      GL.terrain.add(wm); GL.hexMeshes.push(wm);
+    }else{
+      const m=new THREE.Mesh(glHexGeo(topY),[glMat(cols[1]),glTopFor(hex),glMat(cols[2])]);
+      m.position.set(w.x,topY/2,w.z);
+      m.castShadow=m.receiveShadow=true; m.userData={q:q,r:r};
+      GL.terrain.add(m); GL.hexMeshes.push(m);
+    }
+    if(hex.terrain==='lightWoods'||hex.terrain==='heavyWoods'){
+      const heavy=hex.terrain==='heavyWoods', n=heavy?6:3;
+      if(!GL.geos.trunk) GL.geos.trunk=new THREE.CylinderGeometry(0.045,0.075,0.3,6);
+      if(!GL.geos.cone) GL.geos.cone=new THREE.ConeGeometry(0.3,0.62,8);
+      if(!GL.geos.blob) GL.geos.blob=new THREE.SphereGeometry(0.24,8,6);
+      for(let i=0;i<n;i++){
+        const a2=seedRand(q,r,i)*6.283, rr=seedRand(q,r,i+7)*0.58;
+        const tx=w.x+Math.cos(a2)*rr, tz=w.z+Math.sin(a2)*rr;
+        const th=(heavy?1.6:1.2)*(0.7+seedRand(q,r,i+3)*0.55);
+        const trunk=new THREE.Mesh(GL.geos.trunk,glMat('#4a3826',{roughness:0.95}));
+        trunk.position.set(tx,topY+0.15,tz);
+        trunk.castShadow=true; GL.terrain.add(trunk);
+        if(seedRand(q,r,i+11)<0.55){
+          const c1=new THREE.Mesh(GL.geos.cone,glMat(heavy?'#2c5234':'#3c6b42',{roughness:0.95}));
+          c1.position.set(tx,topY+0.2+th*0.31,tz); c1.scale.setScalar(th);
+          const c3=new THREE.Mesh(GL.geos.cone,glMat(heavy?'#38663f':'#4d8253',{roughness:0.95}));
+          c3.position.set(tx,topY+0.2+th*0.55,tz); c3.scale.setScalar(th*0.66);
+          c1.castShadow=c3.castShadow=true;
+          c1.rotation.y=seedRand(q,r,i+13)*3; c3.rotation.y=seedRand(q,r,i+17)*3;
+          GL.terrain.add(c1); GL.terrain.add(c3);
+        }else{
+          const s1=new THREE.Mesh(GL.geos.blob,glMat(heavy?'#315a3a':'#4a7a4a',{roughness:0.98}));
+          s1.position.set(tx,topY+0.3+th*0.26,tz); s1.scale.set(th*0.85,th*0.7,th*0.85);
+          const s2=new THREE.Mesh(GL.geos.blob,glMat(heavy?'#3d6b45':'#5c8f58',{roughness:0.98}));
+          s2.position.set(tx+0.1*th,topY+0.3+th*0.4,tz-0.06*th); s2.scale.set(th*0.55,th*0.48,th*0.55);
+          s1.castShadow=s2.castShadow=true;
+          GL.terrain.add(s1); GL.terrain.add(s2);
+        }
+      }
+    }
+    if(hex.terrain==='building'){
+      const bh=(hex.bldgHeight||1)*LH3;
+      if(!GL.geos.box) GL.geos.box=new THREE.BoxGeometry(1.28,1,1.28);
+      if(!GL.mats.bldg) GL.mats.bldg=new THREE.MeshStandardMaterial({map:glWinTex(),color:0xaeb4c2,roughness:0.6,emissive:new THREE.Color(0xffc069),emissiveIntensity:0.18,emissiveMap:glWinTex()});
+      const bm=new THREE.Mesh(GL.geos.box,GL.mats.bldg);
+      bm.scale.y=bh; bm.position.set(w.x,topY+bh/2,w.z);
+      bm.castShadow=bm.receiveShadow=true;
+      GL.terrain.add(bm);
+      const roof=new THREE.Mesh(GL.geos.box,glMat('#565c68'));
+      roof.scale.set(1.06,0.06,1.06); roof.position.set(w.x,topY+bh+0.03,w.z);
+      GL.terrain.add(roof);
+    }
+    if(hex.terrain==='rough'){
+      if(!GL.geos.rock) GL.geos.rock=new THREE.DodecahedronGeometry(0.14,0);
+      for(let i=0;i<3;i++){
+        const rk=new THREE.Mesh(GL.geos.rock,glMat('#8a8172'));
+        rk.position.set(w.x+(seedRand(q,r,i)-0.5)*0.9, topY+0.08, w.z+(seedRand(q,r,i+5)-0.5)*0.8);
+        rk.rotation.set(seedRand(q,r,i)*3,seedRand(q,r,i+1)*3,0);
+        rk.castShadow=true;
+        GL.terrain.add(rk);
+      }
+    }
+  }
+}
+function glMech(color){
+  const g=new THREE.Group();
+  const paint=new THREE.MeshStandardMaterial({color:new THREE.Color(color),roughness:0.4,metalness:0.55});
+  const paintD=new THREE.MeshStandardMaterial({color:new THREE.Color(shade(color,0.66)),roughness:0.48,metalness:0.5});
+  const joint=new THREE.MeshStandardMaterial({color:0x23262c,roughness:0.6,metalness:0.65});
+  const steel=new THREE.MeshStandardMaterial({color:0x3a3e46,roughness:0.3,metalness:0.85});
+  function P(geo,mat,x,y,z,rx,ry,rz){
+    const m=new THREE.Mesh(geo,mat);
+    m.position.set(x,y,z);
+    if(rx)m.rotation.x=rx; if(ry)m.rotation.y=ry; if(rz)m.rotation.z=rz;
+    m.castShadow=true; g.add(m); return m;
+  }
+  const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
+  const C=(r1,r2,h,seg)=>new THREE.CylinderGeometry(r1,r2,h,seg||8);
+  P(B(0.2,0.07,0.3),joint,-0.15,0.035,0.02); P(B(0.2,0.07,0.3),joint,0.15,0.035,0.02);
+  P(B(0.16,0.05,0.1),paintD,-0.15,0.09,0.13); P(B(0.16,0.05,0.1),paintD,0.15,0.09,0.13);
+  P(B(0.13,0.28,0.17),paintD,-0.15,0.22,-0.01,0.1); P(B(0.13,0.28,0.17),paintD,0.15,0.22,-0.01,0.1);
+  P(B(0.11,0.24,0.04),paint,-0.15,0.24,0.09,0.14); P(B(0.11,0.24,0.04),paint,0.15,0.24,0.09,0.14);
+  P(C(0.08,0.08,0.16),joint,-0.15,0.375,0,0,0,Math.PI/2); P(C(0.08,0.08,0.16),joint,0.15,0.375,0,0,0,Math.PI/2);
+  P(B(0.15,0.26,0.18),paint,-0.15,0.5,0.02,-0.12); P(B(0.15,0.26,0.18),paint,0.15,0.5,0.02,-0.12);
+  P(B(0.34,0.13,0.22),joint,0,0.63,0);
+  P(B(0.42,0.16,0.28),paintD,0,0.72,0);
+  P(B(0.52,0.2,0.3),paint,0,0.85,0.01);
+  P(B(0.46,0.14,0.1),paintD,0,0.9,0.14,0.55);
+  P(B(0.36,0.22,0.1),paintD,0,0.82,-0.17);
+  P(C(0.05,0.05,0.1),steel,-0.1,0.95,-0.19,0.3); P(C(0.05,0.05,0.1),steel,0.1,0.95,-0.19,0.3);
+  P(B(0.18,0.16,0.24),paintD,-0.37,0.94,0); P(B(0.18,0.16,0.24),paintD,0.37,0.94,0);
+  P(B(0.2,0.14,0.18),paint,-0.37,1.06,0.01);
+  for(let px=0;px<3;px++) for(let py=0;py<2;py++)
+    P(C(0.018,0.018,0.02,6),joint,-0.425+px*0.055,1.03+py*0.06,0.1,Math.PI/2);
+  P(B(0.11,0.2,0.15),joint,-0.4,0.78,0.01); P(B(0.11,0.2,0.15),joint,0.4,0.78,0.01);
+  P(B(0.12,0.22,0.16),paint,-0.41,0.58,0.03,-0.15); P(B(0.12,0.22,0.16),paint,0.41,0.58,0.03,-0.15);
+  P(C(0.032,0.032,0.34),steel,0.44,0.47,0.18,Math.PI/2);
+  P(C(0.032,0.032,0.34),steel,0.38,0.47,0.18,Math.PI/2);
+  P(C(0.05,0.04,0.3),steel,-0.41,0.47,0.16,Math.PI/2);
+  P(B(0.2,0.14,0.2),paintD,0,1.02,0.02);
+  const canopy=new THREE.Mesh(B(0.15,0.07,0.04),
+    new THREE.MeshStandardMaterial({color:0xffd98a,emissive:new THREE.Color(0xffb84d),emissiveIntensity:0.9,roughness:0.2,metalness:0.3}));
+  canopy.position.set(0,1.03,0.13); g.add(canopy);
+  P(C(0.008,0.008,0.16,5),steel,0.1,1.16,-0.04);
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.52,0.05,24),
+    new THREE.MeshStandardMaterial({color:new THREE.Color(shade(color,0.8)),roughness:0.35,metalness:0.3,emissive:new THREE.Color(color),emissiveIntensity:0.25}));
+  base.position.y=0.028; base.receiveShadow=true; g.add(base);
+  return g;
+}
+function glUnits(){
+  if(!GL.mechA){
+    GL.mechA=glMech('#d6533a'); GL.mechB=glMech('#4f93d8');
+    GL.units.add(GL.mechA); GL.units.add(GL.mechB);
+  }
+  const pairs=[[GL.mechA,state.atk],[GL.mechB,state.tgt]];
+  for(const [g,u] of pairs){
+    const hex=hx(u.hex.q,u.hex.r), w=wpos(u.hex.q,u.hex.r);
+    let ground=hex.level;
+    if(hex.terrain==='water') ground=hex.level-(hex.depth||0);
+    const y=SLAB+ground*LH3+(u.prone?0.14:0);
+    g.position.set(w.x,y,w.z);
+    g.rotation.set(u.prone?-1.42:0,0,0);
+    g.userData.baseY=y;
+  }
+}
+function glEye(u){
+  const hex=hx(u.hex.q,u.hex.r), w=wpos(u.hex.q,u.hex.r);
+  let ground=hex.level;
+  if(hex.terrain==='water') ground=hex.level-(hex.depth||0);
+  return new THREE.Vector3(w.x, SLAB+ground*LH3+(u.prone?0.26:0.98), w.z);
+}
+function glSprite(text,color,pos){
+  const c=document.createElement('canvas'); c.width=c.height=96;
+  const x=c.getContext('2d');
+  x.beginPath(); x.arc(48,48,40,0,7); x.fillStyle=color; x.fill();
+  x.fillStyle='#14100a'; x.font='700 44px Inter,system-ui';
+  x.textAlign='center'; x.textBaseline='middle';
+  x.fillText(text,48,52);
+  const tx=new THREE.CanvasTexture(c);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,depthTest:false,transparent:true}));
+  sp.scale.set(0.62,0.62,1); sp.position.copy(pos);
+  sp.userData.tmp=true;
+  return sp;
+}
+function glLos(){
+  glClear(GL.los);
+  const res=state.result;
+  if(!res||res.sameHex) return;
+  const A=glEye(state.atk), B=glEye(state.tgt);
+  function seg(p1,p2,color){
+    const geo=new THREE.BufferGeometry().setFromPoints([p1,p2]);
+    const mat=new THREE.LineDashedMaterial({color:color,dashSize:0.34,gapSize:0.2,transparent:true,opacity:0.95});
+    const ln=new THREE.Line(geo,mat);
+    ln.computeLineDistances();
+    ln.userData.tmp=true;
+    GL.los.add(ln);
+  }
+  if(res.blocked&&res.blockHexKey){
+    const [q,r]=res.blockHexKey.split(',').map(Number);
+    const bw=wpos(q,r), cell=hx(q,r);
+    const wt=woodsTop(cell);
+    const M=new THREE.Vector3(bw.x,SLAB+(wt!==null?wt:effElevation(cell))*LH3+0.25,bw.z);
+    seg(A,M,0xe8a33d); seg(M,B,0xd6533a);
+    GL.los.add(glSprite('X','#d6533a',M.clone().add(new THREE.Vector3(0,0.55,0))));
+  }else{
+    seg(A,B,res.totalMod>0?0xe8a33d:0x5cb371);
+  }
+  for(const row of res.rows){
+    let badge=null;
+    for(const e of row.effects){
+      if(e.type==='woods') badge={t:'+'+res.rb.woodsPts[row.hex.terrain],c:'#e8a33d'};
+      if(e.type==='cover'&&!badge) badge={t:'C',c:'#4f93d8'};
+      if(e.type==='block'){ badge=null; break; }
+    }
+    if(badge){
+      const w=wpos(row.coord.q,row.coord.r);
+      const wt=woodsTop(row.hex);
+      GL.los.add(glSprite(badge.t,badge.c,new THREE.Vector3(w.x,SLAB+((wt!==null?wt:row.hex.level))*LH3+0.75,w.z)));
+    }
+  }
+}
+function glFloat(text,color,pos){
+  const c=document.createElement('canvas'); c.width=256; c.height=64;
+  const x=c.getContext('2d');
+  x.font='600 30px Inter,system-ui'; x.textAlign='center'; x.textBaseline='middle';
+  x.fillStyle='rgba(0,0,0,0.55)'; x.fillText(text,130,34);
+  x.fillStyle=color; x.fillText(text,128,32);
+  const tx=new THREE.CanvasTexture(c);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,depthTest:false,transparent:true}));
+  sp.scale.set(2.6,0.65,1); sp.position.copy(pos);
+  sp.userData={tmp:true,float:true,t:0};
+  GL.fx.add(sp);
+}
+function glFire(res){
+  const wpn=document.getElementById('weapon').value;
+  const A=glEye(state.atk);
+  let end,hit;
+  if(res.blocked&&res.blockHexKey){
+    const [q,r]=res.blockHexKey.split(',').map(Number);
+    const cell=hx(q,r), w=wpos(q,r);
+    const wt=woodsTop(cell);
+    end=new THREE.Vector3(w.x,SLAB+(wt!==null?wt-0.6:effElevation(cell))*LH3+0.25,w.z); hit=false;
+  }else if(res.blocked){
+    end=A.clone().lerp(glEye(state.tgt),0.5); hit=false;
+  }else{ end=glEye(state.tgt); hit=true; }
+  const s={wpn:wpn,a:A,b:end,t:0,hit:hit,dur:wpn==='lrm'?1100:wpn==='ac'?750:560,objs:[]};
+  if(wpn==='laser'||wpn==='mlaser'||wpn==='ppc'){
+    const col=wpn==='ppc'?0x6eb4ff:0xff4030;
+    const geo=new THREE.BufferGeometry().setFromPoints([A,end]);
+    const ln=new THREE.Line(geo,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:1}));
+    ln.userData.tmp=true;
+    s.objs.push(ln); s.line=ln; GL.fx.add(ln);
+  }else{
+    if(!GL.geos.ball) GL.geos.ball=new THREE.SphereGeometry(0.06,8,8);
+    s.balls=[];
+    const n=wpn==='lrm'?6:4;
+    for(let i=0;i<n;i++){
+      const b=new THREE.Mesh(GL.geos.ball,glMat(wpn==='lrm'?'#ffe9c0':'#ffd27a',{emissive:new THREE.Color(0xffb840),emissiveIntensity:1}));
+      b.visible=false;
+      s.balls.push({m:b,d:i*(wpn==='lrm'?90:110),off:(Math.random()-0.5)*0.8});
+      GL.fx.add(b); s.objs.push(b);
+    }
+  }
+  const li=new THREE.PointLight(hit?0xffc069:0xbbb1a0,0,6);
+  li.position.copy(end);
+  GL.fx.add(li); s.objs.push(li); s.light=li;
+  GL.shots.push(s);
+  let label='Blockiert!', col2='#ef8570';
+  if(hit){
+    const gc=gatorCalc(res);
+    label=gc&&!gc.out?('TN '+gc.tn+' | '+gc.prob.toFixed(0)+' %'):(gc&&gc.out?'Ausser Reichweite!':'Treffer moeglich');
+    col2='#f5c069';
+  }
+  glFloat(label,col2,end.clone().add(new THREE.Vector3(0,0.7,0)));
+}
+let glLastT=0;
+function glRender(t){
+  const dt=Math.min(50,t-(glLastT||t)); glLastT=t;
+  const o=GL.orbit, c=GL.center;
+  GL.camera.position.set(
+    c.x+o.R*Math.sin(o.phi)*Math.cos(o.theta),
+    o.R*Math.cos(o.phi),
+    c.z+o.R*Math.sin(o.phi)*Math.sin(o.theta));
+  GL.camera.lookAt(c.x,0.6,c.z);
+  const pa=GL.dust.geometry.attributes.position;
+  for(let i=0;i<pa.count;i++){
+    let y=pa.getY(i)-dt*0.00035*(1+i%3);
+    if(y<0) y=13;
+    pa.setY(i,y);
+  }
+  pa.needsUpdate=true;
+  if(GL.mechA){
+    GL.mechA.position.y=GL.mechA.userData.baseY+(state.atk.prone?0:Math.sin(t*0.0016)*0.015);
+    GL.mechB.position.y=GL.mechB.userData.baseY+(state.tgt.prone?0:Math.sin(t*0.0016+2)*0.015);
+  }
+  if(GL.waterMat) GL.waterMat.opacity=0.66+Math.sin(t*0.0012)*0.07;
+  for(const s of GL.shots){
+    s.t+=dt;
+    const k=Math.min(1,s.t/s.dur);
+    if(s.line){
+      s.line.material.opacity=s.wpn==='ppc'?(1-k)*(0.6+Math.random()*0.4):Math.max(0,k<0.15?k/0.15:1-(k-0.15)/0.85);
+      if(s.wpn==='ppc'){
+        const pts=[s.a];
+        for(let i=1;i<9;i++){
+          pts.push(new THREE.Vector3().lerpVectors(s.a,s.b,i/9)
+            .add(new THREE.Vector3((Math.random()-0.5)*0.25,(Math.random()-0.5)*0.25,(Math.random()-0.5)*0.25)));
+        }
+        pts.push(s.b);
+        s.line.geometry.setFromPoints(pts);
+      }
+    }
+    if(s.balls) for(const b of s.balls){
+      const tt=(s.t-b.d)/(s.dur-300);
+      if(tt<=0||tt>=1){ b.m.visible=false; continue; }
+      b.m.visible=true;
+      b.m.position.lerpVectors(s.a,s.b,tt);
+      if(s.wpn==='lrm') b.m.position.y+=Math.sin(tt*Math.PI)*1.6+b.off*Math.sin(tt*Math.PI)*0.3;
+    }
+    if(s.light) s.light.intensity=k>0.8?(1-(k-0.8)/0.2)*3.4:0;
+  }
+  GL.shots=GL.shots.filter(s=>{
+    if(s.t<s.dur) return true;
+    for(const o2 of s.objs){
+      GL.fx.remove(o2);
+      if(o2.userData&&o2.userData.tmp){
+        if(o2.geometry) o2.geometry.dispose();
+        if(o2.material){ if(o2.material.map) o2.material.map.dispose(); o2.material.dispose(); }
+      }
+    }
+    return false;
+  });
+  for(const sp of GL.fx.children.slice()){
+    if(sp.userData&&sp.userData.float){
+      sp.userData.t+=dt;
+      sp.position.y+=dt*0.0006;
+      sp.material.opacity=Math.max(0,1-sp.userData.t/1600);
+      if(sp.userData.t>1600){
+        GL.fx.remove(sp);
+        sp.material.map.dispose(); sp.material.dispose();
+      }
+    }
+  }
+  if(state.hover&&hx(state.hover.q,state.hover.r)){
+    const hexc=hx(state.hover.q,state.hover.r), w=wpos(state.hover.q,state.hover.r);
+    GL.hover.visible=true;
+    GL.hover.position.set(w.x,SLAB+hexc.level*LH3+0.03,w.z);
+  } else GL.hover.visible=false;
+  GL.renderer.render(GL.scene,GL.camera);
+}
+function glResize(){
+  if(!GL.ready) return;
+  const st=document.getElementById('stage');
+  GL.renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+  GL.renderer.setSize(st.clientWidth,st.clientHeight,false);
+  GL.camera.aspect=st.clientWidth/st.clientHeight;
+  GL.camera.updateProjectionMatrix();
+}
+function glSync(force){
+  if(!GL.ready) return;
+  if(force||GL.builtRev!==state.terrainRev){ glRebuildTerrain(); GL.builtRev=state.terrainRev; }
+  glUnits(); glLos();
+}
+function glEvents(){
+  const el=GL.renderer.domElement;
+  let gd=null;
+  function pick(e){
+    const r2=el.getBoundingClientRect();
+    const v=new THREE.Vector2(((e.clientX-r2.left)/r2.width)*2-1,-((e.clientY-r2.top)/r2.height)*2+1);
+    GL.raycaster.setFromCamera(v,GL.camera);
+    const hits=GL.raycaster.intersectObjects(GL.hexMeshes);
+    return hits.length?hits[0].object.userData:null;
+  }
+  el.addEventListener('mousedown',e=>{
+    const h=pick(e);
+    if(state.tool==='pan'){
+      const canEdit=state.mode!=='lessons';
+      if(canEdit&&h&&HexGeo.equals(h,state.atk.hex)) gd={unit:state.atk};
+      else if(canEdit&&h&&HexGeo.equals(h,state.tgt.hex)) gd={unit:state.tgt};
+      else gd={rot:true,sx:e.clientX,sy:e.clientY,th:GL.orbit.theta,ph:GL.orbit.phi};
+    }else if(h&&['mechA','mechB','up','down','clear','tree1','tree2','water','bldg','rough'].includes(state.tool)){
+      applyTool({q:h.q,r:h.r});
+      gd={paint:true,last:h.q+','+h.r};
+    }else{
+      gd={rot:true,sx:e.clientX,sy:e.clientY,th:GL.orbit.theta,ph:GL.orbit.phi};
+    }
+  });
+  window.addEventListener('mousemove',e=>{
+    if(state.style!=='gl'||!GL.ready) return;
+    if(gd){
+      if(gd.rot){
+        GL.orbit.theta=gd.th+(e.clientX-gd.sx)*0.0055;
+        GL.orbit.phi=Math.max(0.32,Math.min(1.38,gd.ph-(e.clientY-gd.sy)*0.004));
+      }else if(gd.unit){
+        const h=pick(e);
+        if(h){
+          const other=gd.unit===state.atk?state.tgt:state.atk;
+          if(!HexGeo.equals(h,other.hex)&&!HexGeo.equals(h,gd.unit.hex)){
+            gd.unit.hex={q:h.q,r:h.r}; recompute();
+          }
+        }
+      }else if(gd.paint&&['up','down','clear','tree1','tree2','rough'].includes(state.tool)){
+        const h=pick(e);
+        if(h&&h.q+','+h.r!==gd.last){ gd.last=h.q+','+h.r; applyTool({q:h.q,r:h.r}); }
+      }
+      return;
+    }
+    const h=pick(e);
+    state.hover=h?{q:h.q,r:h.r}:null;
+    const chip=document.getElementById('hoverchip');
+    if(h){ const cell=hx(h.q,h.r); chip.innerHTML='Hex <b>'+hexLabel(h)+'</b> · '+esc(terrName(cell)); }
+  });
+  window.addEventListener('mouseup',()=>gd=null);
+  el.addEventListener('wheel',e=>{
+    e.preventDefault();
+    GL.orbit.R=Math.max(9,Math.min(46,GL.orbit.R*(e.deltaY<0?0.92:1.08)));
+  },{passive:false});
+}
+</script>
+</body>
+</html>
